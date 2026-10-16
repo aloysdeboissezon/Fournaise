@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fournaise</title>
+<meta name="description" content="Le score de chaleur d'un logement parisien avant de le louer : nuits étouffantes, projection 2050 et conseils concrets.">
+<meta property="og:title" content="Fournaise · le score de chaleur de ton futur appart">
+<meta property="og:description" content="Tu visites en novembre. Tu dors en juillet. Combien de nuits étouffantes t'attendent ?">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- BODY:START -->
+<a class="skip" href="#outil">Aller directement à l'outil</a>
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Fournaise</a>
+    <nav aria-label="Sections">
+      <a href="#outil">Le score</a>
+      <a href="#conseils">Conseils</a>
+      <a href="#methode">Méthode</a>
+    </nav>
+    <span class="city-pill">Paris · bêta</span>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero wrap">
+    <p class="eyebrow">Le score de chaleur d'un logement</p>
+    <h1>Tu visites en novembre. <span class="hot">Tu dors en juillet.</span></h1>
+    <p class="lede">Fournaise estime combien de nuits étouffantes t'attendent dans un appart avant que tu signes. Le calcul part de dix étés de relevés réels à Paris et de ce que tu sais du logement : étage, fenêtres, orientation.</p>
+  </section>
+
+  <section id="outil" class="tool wrap" aria-label="Calculer le score">
+    <form id="form" class="panel form" novalidate>
+      <div class="examples" id="examples"><span>Exemples :</span></div>
+
+      <fieldset>
+        <legend>Où est le logement ?</legend>
+        <div class="addr">
+          <label class="q-label" for="addr-input">Adresse à Paris</label>
+          <div class="addr-row">
+            <input id="addr-input" type="text" autocomplete="off" placeholder="12 rue des Martyrs, 75009 Paris" aria-autocomplete="list" aria-controls="addr-suggest">
+            <button class="btn" type="submit" id="addr-go">Localiser</button>
+          </div>
+          <ul class="suggest" id="addr-suggest" role="listbox" hidden></ul>
+          <p class="note" id="addr-note">Tape une adresse, ou clique directement sur la carte.</p>
+        </div>
+        <div class="map-box">
+          <svg id="map" role="img" aria-label="Carte de Paris : clique pour placer le logement"></svg>
+          <div class="map-legend">
+            <span>Nuits plus fraîches</span><span class="ramp" aria-hidden="true"></span><span>plus chaudes</span>
+            <span class="grow"></span><span>Îlots de chaleur estimés</span>
+          </div>
+        </div>
+        <div class="loc-line">
+          <span id="loc-text">Aucun emplacement choisi</span>
+          <select id="arr-select" aria-label="Ou choisis l'arrondissement"></select>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Le logement</legend>
+        <div id="q-main" class="refine-body"></div>
+      </fieldset>
+
+      <details class="refine" open>
+        <summary>Pour affiner <span class="hint">le score devient plus fiable</span></summary>
+        <div id="q-more" class="refine-body"></div>
+      </details>
+    </form>
+
+    <aside class="verdict panel" id="verdict" aria-live="polite">
+      <div class="v-head">
+        <span class="eyebrow">Score de chaleur</span>
+        <span class="chip example" id="v-example">Exemple</span>
+        <span class="chip" id="v-conf"><span class="dot"></span><span id="v-conf-text">Confiance</span></span>
+      </div>
+      <div class="score-row">
+        <div class="score" id="v-score">–<small>/10</small></div>
+        <div class="v-label">
+          <div class="v-name" id="v-name"></div>
+          <p class="v-text" id="v-text"></p>
+        </div>
+      </div>
+      <div>
+        <div class="gauge" aria-hidden="true"><div class="gauge-mark" id="v-mark"></div></div>
+        <div class="gauge-scale" aria-hidden="true"><span>1 · frais</span><span>5</span><span>10 · fournaise</span></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="k">Nuits étouffantes par été</span><span class="v" id="s-n26">–</span><span class="s" id="s-range"></span></div>
+        <div class="stat"><span class="k">Dont au-dessus de 28 °C</span><span class="v" id="s-n28">–</span><span class="s">dans la chambre au coucher</span></div>
+        <div class="stat"><span class="k">Ton appart en 2050</span><span class="v" id="s-2050">–</span><span class="s" id="s-2050s"></span></div>
+        <div class="stat"><span class="k">Nuits tropicales dehors</span><span class="v" id="s-trop">–</span><span class="s">jamais sous 20 °C dans le quartier</span></div>
+      </div>
+      <p class="v-place" id="v-place"></p>
+      <details class="v-conf" id="v-conf-details">
+        <summary id="v-conf-summary">Pourquoi ce niveau de confiance</summary>
+        <ul id="v-conf-list"></ul>
+      </details>
+      <div class="v-actions">
+        <a class="btn hot" href="#partage">Partager mon score</a>
+        <a class="btn ghost" href="#conseils">Voir les conseils</a>
+      </div>
+    </aside>
+  </section>
+
+  <div class="wrap"><hr class="rule"></div>
+
+  <section class="wrap section" id="etes">
+    <div class="section-head row">
+      <div>
+        <h2>Tes dix derniers étés, nuit par nuit</h2>
+        <p>Chaque case est une nuit entre le 1er juin et le 30 septembre. Sa couleur donne la température estimée de la chambre au moment de se coucher. Au-dessus de 26 °C, le sommeil devient difficile.</p>
+      </div>
+      <div class="toggle" role="group" aria-label="Période">
+        <button type="button" id="view-now" aria-pressed="true">Aujourd'hui</button>
+        <button type="button" id="view-2050" aria-pressed="false">En 2050</button>
+      </div>
+    </div>
+    <div class="card stripes-card">
+      <div class="stripes-scroll">
+        <div class="stripes-wrap" id="stripes-wrap">
+          <canvas id="stripes" role="img" aria-label="Température estimée de la chambre pour chaque nuit d'été de 2017 à 2026"></canvas>
+          <div class="tip" id="stripes-tip" hidden></div>
+        </div>
+      </div>
+      <div class="stripes-legend" id="stripes-legend"></div>
+    </div>
+  </section>
+
+  <section class="wrap section grid2">
+    <div class="card waterfall">
+      <div class="section-head">
+        <h2>Une soirée chaude chez toi</h2>
+        <p id="wf-sub">D'où vient chaque degré dans la chambre.</p>
+      </div>
+      <div id="wf" class="wf" role="list" aria-label="Décomposition de la température de la chambre"></div>
+      <p class="caption" id="wf-caption"></p>
+    </div>
+    <div class="card future">
+      <div class="section-head">
+        <h2>Ton appart en 2050</h2>
+        <p>Les mêmes dix étés, réchauffés selon la trajectoire de référence pour l'adaptation de la France (TRACC : +2,7 °C en France en 2050 par rapport à l'ère préindustrielle).</p>
+      </div>
+      <div class="duo">
+        <div><span class="yr">Aujourd'hui</span><span class="big" id="f-now">–</span><span class="sub" id="f-now-s"></span></div>
+        <div><span class="yr">En 2050</span><span class="big" id="f-2050">–</span><span class="sub" id="f-2050-s"></span></div>
+      </div>
+      <div class="bars" id="f-bars"></div>
+      <p class="caption">Nuits étouffantes par été. Les fourchettes basse et haute reflètent l'écart entre modèles climatiques et scénarios d'émissions.</p>
+    </div>
+  </section>
+
+  <section class="wrap section" id="conseils">
+    <div class="section-head">
+      <h2>Ce qui changerait tout</h2>
+      <p>Chaque piste a été recalculée sur tes dix étés. Les nuits gagnées s'additionnent en partie seulement.</p>
+    </div>
+    <div class="advice" id="advice"></div>
+  </section>
+
+  <section class="wrap section grid2" id="partage">
+    <div class="card">
+      <div class="section-head">
+        <h2>À demander pendant la visite</h2>
+        <p>Les réponses qui feraient le plus bouger ton score.</p>
+      </div>
+      <ul class="questions" id="questions"></ul>
+    </div>
+    <div class="card">
+      <div class="section-head">
+        <h2>Partage ton score</h2>
+        <p>Pour prévenir tes colocs, ou faire baisser le loyer.</p>
+      </div>
+      <div class="share">
+        <div class="story" id="story">
+          <span class="s-brand">fournaise</span>
+          <div>
+            <div class="s-score" id="story-score">–<small>/10</small></div>
+            <div class="s-line" id="story-line"></div>
+          </div>
+          <span class="s-meta" id="story-meta"></span>
+        </div>
+        <div>
+          <p class="share-text" id="share-text"></p>
+          <div class="share-actions">
+            <button class="btn" type="button" id="copy-btn">Copier le message</button>
+            <button class="btn ghost" type="button" id="img-btn">Enregistrer l'image</button>
+          </div>
+          <p class="toast" id="share-toast" role="status"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><hr class="rule"></div>
+
+  <section class="wrap section" id="methode">
+    <div class="section-head">
+      <h2>Comment le score est calculé</h2>
+      <p>Tout le calcul tourne dans ton navigateur, avec des coefficients écrits en clair. Ce n'est pas une simulation thermique réglementaire : c'est une estimation rapide pour comparer des logements et savoir quelles questions poser.</p>
+    </div>
+    <div class="method">
+      <div class="card">
+        <ol class="steps">
+          <li><div><strong>Dix étés réels</strong><p>Températures minimales et maximales de chaque jour, de juin à septembre 2017-2026, à la station Météo-France de Paris-Montsouris.</p></div></li>
+          <li><div><strong>Ton quartier</strong><p>Un écart nocturne est ajouté selon la distance au cœur minéral de Paris, la densité de l'arrondissement, la proximité des bois, parcs et de la Seine. Il est plus fort les nuits chaudes.</p></div></li>
+          <li><div><strong>L'inertie du bâtiment</strong><p>Le logement réagit à la moyenne des quatre derniers jours, plus lentement s'il est en pierre, plus vite sous un toit en zinc.</p>
+            <div class="formula">Tlibre = 20 + a × (Tmoy4j − 20) + apports + s × soleil(Tx)</div></div></li>
+          <li><div><strong>Le soleil et la ventilation</strong><p>Toit, orientation, vitrage et volets règlent les apports solaires. La nuit, l'air extérieur ramène la chambre vers la température de la rue, d'autant mieux que l'appartement est traversant.</p>
+            <div class="formula">Tchambre = Tlibre − V × (Tlibre − Tnuit dehors)</div></div></li>
+          <li><div><strong>Le score</strong><p>Une nuit est étouffante quand la chambre dépasse 26 °C au coucher. Une nuit au-dessus de 28 °C compte une fois et demie. Le score suit la racine du nombre de nuits, plafonné à 60.</p>
+            <div class="formula">score = 1 + 9 × √(min(nuits pondérées, 60) / 60)</div></div></li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Poids des réponses</h3>
+        <p class="caption" style="margin:6px 0 10px">Degrés ajoutés à la chambre une soirée de canicule (35 °C), toutes choses égales par ailleurs.</p>
+        <div class="tbl-wrap"><table id="coef-table"><thead><tr><th>Réponse</th><th class="num">Effet</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Données utilisées</h3>
+        <ul class="sources" style="margin-top:10px">
+          <li>Relevés quotidiens de Paris-Montsouris (Météo-France, station 75114001), lus sur <a href="https://www.keraunos.org/climatologie/climat-de-la-france-cartes-donnees-stations/station/75114001/2025/02" target="_blank" rel="noopener">Keraunos</a>, normales 1991-2020 de la <a href="https://object.files.data.gouv.fr/meteofrance/data/synchro_ftp/REF_STATION/FICHECLIM_75114001.pdf" target="_blank" rel="noopener">fiche climatologique</a>.</li>
+          <li>Trajectoire de réchauffement de référence pour l'adaptation (TRACC), ministère de la Transition écologique.</li>
+          <li>Limites des arrondissements : Ville de Paris (open data).</li>
+          <li>Géocodage : Base Adresse Nationale, service de la Géoplateforme (IGN), quand il est joignable.</li>
+          <li>Espaces verts et Seine : tracés simplifiés à partir des emprises connues.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Limites connues</h3>
+        <ul class="limits" style="margin-top:10px">
+          <li>La carte de chaleur est estimée à l'échelle du quartier. Une cour arborée ou une rue très minérale peuvent changer la donne de 1 à 2 °C.</li>
+          <li>Le modèle n'est pas encore calé sur des mesures de température à l'intérieur de vrais logements.</li>
+          <li>Les fourchettes affichées donnent l'incertitude : plus tu renseignes de détails, plus elles se resserrent.</li>
+          <li>Prochaines étapes : chaleur de surface Landsat, données bâtiment BDNB et DPE de l'ADEME à l'adresse, puis Lyon, Marseille et Toulouse.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Fournaise · version 1 · Paris</span>
+    <span>Une estimation pour choisir son logement, pas un diagnostic thermique.</span>
+  </div>
+</footer>
+<!-- BODY:END -->
+<script src="js/data-paris.js"></script>
+<script src="js/model.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

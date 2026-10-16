@@ -1,0 +1,1983 @@
+<title>Fournaise</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Le score de chaleur d'un logement parisien avant de le louer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Fournaise — feuille de style.
+   Concept de mise en page : un relevé thermique de toit parisien. Fond zinc, une
+   seule échelle de chaleur (eau de Seine → braise → lie-de-vin) qui porte tout le sens. */
+:root {
+  --bg: #edf0f2;
+  --surface: #ffffff;
+  --surface-2: #f4f6f7;
+  --ink: #13171c;
+  --muted: #56616c;
+  --line: #d4dade;
+  --accent: #d9431f;
+  --accent-ink: #ffffff;
+  --focus: #1c64d8;
+  --ok: #1d7a55;
+  --warn: #a35d00;
+  --h0: #2c7a8a;
+  --h1: #79b4a3;
+  --h2: #efd37a;
+  --h3: #f19a3e;
+  --h4: #de4a22;
+  --h5: #a3133f;
+  --h6: #4b0b33;
+  --map-line: rgba(19, 23, 28, 0.35);
+  --seine: #5f9fc4;
+  --shadow: 0 1px 2px rgba(20, 30, 40, 0.06), 0 8px 24px rgba(20, 30, 40, 0.06);
+  --font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1116;
+    --surface: #151b22;
+    --surface-2: #1b232b;
+    --ink: #e8edf2;
+    --muted: #95a2af;
+    --line: #2a343e;
+    --accent: #ff6b3d;
+    --accent-ink: #1a0d08;
+    --focus: #7fb0ff;
+    --ok: #4cc08d;
+    --warn: #f0a640;
+    --h0: #3a95a6;
+    --h1: #7fbba9;
+    --h2: #efd37a;
+    --h3: #f4a24a;
+    --h4: #ff5f33;
+    --h5: #d0245a;
+    --h6: #8e1c5e;
+    --map-line: rgba(232, 237, 242, 0.35);
+    --seine: #4f8fb6;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1116;
+  --surface: #151b22;
+  --surface-2: #1b232b;
+  --ink: #e8edf2;
+  --muted: #95a2af;
+  --line: #2a343e;
+  --accent: #ff6b3d;
+  --accent-ink: #1a0d08;
+  --focus: #7fb0ff;
+  --ok: #4cc08d;
+  --warn: #f0a640;
+  --h0: #3a95a6;
+  --h1: #7fbba9;
+  --h2: #efd37a;
+  --h3: #f4a24a;
+  --h4: #ff5f33;
+  --h5: #d0245a;
+  --h6: #8e1c5e;
+  --map-line: rgba(232, 237, 242, 0.35);
+  --seine: #4f8fb6;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  margin: 0;
+}
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.12; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.35rem, 2.6vw, 1.85rem); font-weight: 700; }
+h3 { font-size: 1.02rem; font-weight: 600; }
+p { margin: 0; }
+.num, .data { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 16px; top: 16px; z-index: 50; background: var(--surface); padding: 8px 12px; border-radius: var(--radius-sm); }
+
+/* Barre du haut */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-in { display: flex; align-items: center; gap: 20px; padding-block: 12px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 1.12rem; text-decoration: none; letter-spacing: -0.02em; }
+.brand-mark { width: 14px; height: 26px; border-radius: 7px; background: linear-gradient(to top, var(--h6), var(--h5) 25%, var(--h4) 50%, var(--h3) 72%, var(--h2)); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink) 12%, transparent); }
+.topbar nav { display: flex; gap: 18px; margin-left: auto; font-size: 0.94rem; }
+.topbar nav a { text-decoration: none; color: var(--muted); }
+.topbar nav a:hover { color: var(--ink); }
+.city-pill { font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; white-space: nowrap; }
+@media (max-width: 620px) { .city-pill { display: none; } .topbar nav { gap: 14px; } }
+
+/* Ouverture */
+.hero { padding-block: 44px 28px; display: grid; gap: 16px; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.hero h1 { font-size: clamp(2rem, 6vw, 4.1rem); font-weight: 800; letter-spacing: -0.035em; max-width: 15ch; }
+.hero h1 .hot { background: linear-gradient(90deg, var(--h3), var(--h4) 45%, var(--h5)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { font-size: clamp(1.02rem, 1.6vw, 1.16rem); color: var(--muted); max-width: 62ch; }
+
+/* Outil : formulaire + verdict */
+.tool { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; padding-bottom: 28px; }
+@media (max-width: 900px) { .tool { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
+.form { padding: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.form legend, .refine summary { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; padding: 0; margin-bottom: 12px; }
+.refine { border-top: 1px solid var(--line); padding-top: 18px; }
+.refine summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; margin-bottom: 0; }
+.refine summary::-webkit-details-marker { display: none; }
+.refine summary::after { content: "+"; margin-left: auto; font-family: var(--font-data); color: var(--muted); }
+.refine[open] summary::after { content: "−"; }
+.refine[open] summary { margin-bottom: 14px; }
+.refine .hint { font-family: var(--font-body); font-weight: 400; font-size: 0.85rem; color: var(--muted); }
+.refine-body { display: grid; gap: 14px; }
+
+.examples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.86rem; color: var(--muted); }
+.examples button { font: inherit; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 99px; padding: 5px 12px; cursor: pointer; }
+.examples button[aria-pressed="true"] { border-color: var(--ink); }
+.examples button:hover { border-color: var(--muted); }
+
+.q { display: grid; gap: 7px; min-width: 0; }
+.q-label { font-weight: 600; font-size: 0.93rem; }
+.q-label small { font-weight: 400; color: var(--muted); font-size: 0.82rem; margin-left: 4px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); font-size: 0.9rem; cursor: pointer; user-select: none; transition: border-color 0.15s, background 0.15s; }
+.seg label:hover { border-color: var(--muted); }
+.seg input:checked + label { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.seg input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 2px; }
+.seg label.unknown { color: var(--muted); border-style: dashed; }
+.seg input:checked + label.unknown { color: var(--bg); border-style: solid; }
+
+/* Adresse */
+.addr { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.addr-row { display: flex; gap: 8px; }
+.addr-row input { flex: 1; min-width: 0; font: inherit; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); }
+.addr-row input:focus { border-color: var(--ink); outline: none; }
+.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font: inherit; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid var(--ink); background: var(--ink); color: var(--bg); padding: 9px 14px; cursor: pointer; white-space: nowrap; }
+.btn:hover { opacity: 0.9; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn.ghost:hover { border-color: var(--ink); }
+.btn.hot { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.suggest { list-style: none; margin: 0; padding: 4px; position: absolute; top: 46px; left: 0; right: 0; z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); }
+.suggest li { padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.92rem; }
+.suggest li[aria-selected="true"], .suggest li:hover { background: var(--surface-2); }
+.note { font-size: 0.85rem; color: var(--muted); }
+.note.warn { color: var(--warn); }
+.loc-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 0.9rem; }
+.loc-line strong { font-weight: 600; }
+.loc-line select { font: inherit; font-size: 0.88rem; padding: 5px 8px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); margin-left: auto; max-width: 100%; }
+
+/* Carte */
+.map-box { position: relative; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-2); border: 1px solid var(--line); }
+.map-box svg { display: block; width: 100%; height: auto; cursor: crosshair; touch-action: manipulation; }
+.map-legend { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); padding: 8px 10px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.map-legend .ramp { width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--h0), var(--h1), var(--h2), var(--h3), var(--h4)); }
+.map-legend .grow { flex: 1; }
+.arr-label { font-family: var(--font-data); font-size: 11px; fill: var(--ink); opacity: 0.55; pointer-events: none; }
+.pin-halo { fill: var(--accent); opacity: 0.25; }
+.pin-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2.5; }
+
+/* Verdict */
+.verdict { padding: 22px; display: grid; gap: 18px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 72px); }
+@media (max-width: 900px) { .verdict { position: static; } }
+.v-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.v-head .eyebrow { margin-right: auto; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface-2); white-space: nowrap; }
+.chip.example { border-color: var(--warn); color: var(--warn); background: transparent; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.chip.conf-bonne { color: var(--ok); }
+.chip.conf-moyenne { color: var(--warn); }
+.chip.conf-faible { color: var(--h5); }
+.score-row { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.score { font-family: var(--font-display); font-weight: 800; font-size: clamp(4.5rem, 11vw, 6.6rem); line-height: 0.82; letter-spacing: -0.05em; color: var(--score-color, var(--accent)); }
+.score small { font-size: 0.32em; letter-spacing: 0; color: var(--muted); font-weight: 600; margin-left: 4px; }
+.v-name { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; }
+.v-text { color: var(--muted); font-size: 0.95rem; max-width: 34ch; }
+.v-label { display: grid; gap: 4px; padding-bottom: 6px; min-width: 0; }
+.gauge { position: relative; height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--h0), var(--h1) 18%, var(--h2) 40%, var(--h3) 58%, var(--h4) 74%, var(--h5) 88%, var(--h6)); }
+.gauge-mark { position: absolute; top: -5px; width: 4px; height: 22px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); transform: translateX(-2px); transition: left 0.35s ease; }
+.gauge-scale { display: flex; justify-content: space-between; font-family: var(--font-data); font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.stat { background: var(--surface); padding: 12px 14px; display: grid; gap: 2px; align-content: start; min-width: 0; }
+.stat .k { font-size: 0.78rem; color: var(--muted); }
+.stat .v { font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; line-height: 1.15; }
+.stat .v .u { font-family: var(--font-body); font-weight: 500; font-size: 0.85rem; color: var(--muted); margin-left: 3px; }
+.stat .s { font-size: 0.8rem; color: var(--muted); }
+.v-place { font-size: 0.85rem; color: var(--muted); }
+.v-conf { font-size: 0.86rem; }
+.v-conf summary { cursor: pointer; color: var(--muted); }
+.v-conf ul { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.v-conf li { display: flex; gap: 8px; }
+.v-conf li::before { content: "✓"; color: var(--ok); font-weight: 700; width: 1em; flex: none; }
+.v-conf li.ko::before { content: "!"; color: var(--warn); }
+.v-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Sections */
+.section { padding-block: 40px; display: grid; gap: 18px; }
+.section-head { display: grid; gap: 8px; max-width: 70ch; }
+.section-head p { color: var(--muted); }
+.section-head.row { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; max-width: none; }
+.section-head.row > div:first-child { display: grid; gap: 8px; max-width: 70ch; }
+.rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+
+.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 99px; padding: 3px; background: var(--surface); }
+.toggle button { white-space: nowrap; font: inherit; font-size: 0.86rem; border: 0; background: transparent; color: var(--muted); padding: 6px 14px; border-radius: 99px; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+/* Rayures des étés */
+.stripes-card { padding: 16px; }
+.stripes-scroll { overflow-x: auto; }
+.stripes-wrap { position: relative; min-width: 300px; }
+.stripes-wrap canvas { display: block; width: 100%; }
+.stripes-legend { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 0.8rem; color: var(--muted); margin-top: 12px; }
+.stripes-legend .ramp { display: flex; align-items: center; gap: 6px; }
+.stripes-legend .bar { width: 180px; height: 10px; border-radius: 5px; }
+.tip { position: absolute; pointer-events: none; z-index: 4; background: var(--ink); color: var(--bg); font-size: 0.8rem; padding: 6px 9px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); }
+.tip .num { font-weight: 500; }
+
+/* Soirée chaude */
+.waterfall { display: grid; gap: 14px; align-content: start; }
+.wf { display: grid; gap: 8px; }
+.wf-row { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) 4.2rem; gap: 10px; align-items: center; font-size: 0.88rem; }
+.wf-row .lab { min-width: 0; }
+.wf-row.total .lab, .wf-row.total .val { font-weight: 600; }
+.wf-row .val { font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.wf-track { position: relative; height: 22px; border-radius: 4px; background: var(--surface-2); }
+.wf-bar { position: absolute; top: 3px; bottom: 3px; border-radius: 3px; }
+.wf-thr { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed var(--h4); opacity: 0.7; }
+.wf-axis { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) 4.2rem; gap: 10px; font-family: var(--font-data); font-size: 0.72rem; color: var(--muted); }
+.wf-axis .ticks { position: relative; height: 1.2em; }
+.wf-axis .ticks span { position: absolute; transform: translateX(-50%); }
+@media (max-width: 520px) { .wf-row, .wf-axis { grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr) 3.6rem; font-size: 0.8rem; } }
+.caption { font-size: 0.84rem; color: var(--muted); }
+
+/* 2050 */
+.future { display: grid; gap: 18px; }
+.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.duo > div { border-radius: var(--radius-sm); padding: 14px; background: var(--surface-2); display: grid; gap: 4px; }
+.duo .yr { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.duo .big { font-family: var(--font-display); font-weight: 800; font-size: 2.3rem; line-height: 1; }
+.duo .sub { font-size: 0.84rem; color: var(--muted); }
+.bars { display: grid; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) 3.2rem; gap: 10px; align-items: center; font-size: 0.86rem; }
+.bar-row .track { height: 14px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.bar-row .fill { height: 100%; border-radius: 4px; }
+.bar-row .num { text-align: right; }
+
+/* Conseils */
+.advice { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.tip-card { display: grid; gap: 8px; align-content: start; }
+.tip-card .gain { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; color: var(--ok); }
+.tip-card .gain small { font-family: var(--font-body); font-weight: 500; font-size: 0.8rem; color: var(--muted); }
+.tip-card p { font-size: 0.92rem; color: var(--muted); }
+.tip-card .who { font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+/* Visite + partage */
+.questions { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.questions li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; font-size: 0.95rem; }
+.questions .tag { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--surface-2); color: var(--muted); margin-top: 3px; white-space: nowrap; }
+.questions .tag.todo { color: var(--warn); }
+.share { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 20px; align-items: center; }
+@media (max-width: 520px) { .share { grid-template-columns: minmax(0, 1fr); } }
+.story { aspect-ratio: 4 / 5; max-width: 100%; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; background: linear-gradient(rgba(12, 6, 14, 0.28), rgba(12, 6, 14, 0.7)), radial-gradient(120% 90% at 20% 0%, var(--story-a, #f19a3e) 0%, var(--story-b, #a3133f) 55%, #24061b 100%); box-shadow: var(--shadow); overflow: hidden; }
+.story .s-brand { font-family: var(--font-display); font-weight: 800; font-size: 0.85rem; letter-spacing: -0.02em; opacity: 0.9; }
+.story .s-score { font-family: var(--font-display); font-weight: 800; font-size: 4rem; line-height: 0.85; letter-spacing: -0.05em; }
+.story .s-score small { font-size: 0.35em; opacity: 0.8; }
+.story .s-line { font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; line-height: 1.2; }
+.story .s-meta { font-size: 0.72rem; opacity: 0.85; }
+.share-text { font-size: 1rem; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--line); }
+.share-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.toast { font-size: 0.85rem; color: var(--ok); min-height: 1.3em; margin-top: 8px; }
+
+/* Méthode */
+.method { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; }
+@media (max-width: 900px) { .method { grid-template-columns: minmax(0, 1fr); } }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 14px; }
+.steps li { counter-increment: step; display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 10px; }
+.steps li::before { content: counter(step); font-family: var(--font-data); font-weight: 500; font-size: 0.85rem; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); color: var(--muted); }
+.steps strong { display: block; }
+.steps p { color: var(--muted); font-size: 0.93rem; }
+.formula { font-family: var(--font-data); font-size: 0.85rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; overflow-x: auto; white-space: pre; margin-top: 6px; color: var(--ink); }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+td.num { text-align: right; white-space: nowrap; }
+.sources { margin: 0; padding-left: 1.1rem; display: grid; gap: 6px; font-size: 0.92rem; }
+.sources li { color: var(--muted); }
+.sources a { color: var(--ink); }
+.limits { display: grid; gap: 8px; font-size: 0.92rem; color: var(--muted); margin: 0; padding-left: 1.1rem; }
+
+footer { border-top: 1px solid var(--line); margin-top: 20px; }
+footer .wrap { padding-block: 26px 40px; display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 0.85rem; color: var(--muted); }
+
+</style>
+<a class="skip" href="#outil">Aller directement à l'outil</a>
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Fournaise</a>
+    <nav aria-label="Sections">
+      <a href="#outil">Le score</a>
+      <a href="#conseils">Conseils</a>
+      <a href="#methode">Méthode</a>
+    </nav>
+    <span class="city-pill">Paris · bêta</span>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero wrap">
+    <p class="eyebrow">Le score de chaleur d'un logement</p>
+    <h1>Tu visites en novembre. <span class="hot">Tu dors en juillet.</span></h1>
+    <p class="lede">Fournaise estime combien de nuits étouffantes t'attendent dans un appart avant que tu signes. Le calcul part de dix étés de relevés réels à Paris et de ce que tu sais du logement : étage, fenêtres, orientation.</p>
+  </section>
+
+  <section id="outil" class="tool wrap" aria-label="Calculer le score">
+    <form id="form" class="panel form" novalidate>
+      <div class="examples" id="examples"><span>Exemples :</span></div>
+
+      <fieldset>
+        <legend>Où est le logement ?</legend>
+        <div class="addr">
+          <label class="q-label" for="addr-input">Adresse à Paris</label>
+          <div class="addr-row">
+            <input id="addr-input" type="text" autocomplete="off" placeholder="12 rue des Martyrs, 75009 Paris" aria-autocomplete="list" aria-controls="addr-suggest">
+            <button class="btn" type="submit" id="addr-go">Localiser</button>
+          </div>
+          <ul class="suggest" id="addr-suggest" role="listbox" hidden></ul>
+          <p class="note" id="addr-note">Tape une adresse, ou clique directement sur la carte.</p>
+        </div>
+        <div class="map-box">
+          <svg id="map" role="img" aria-label="Carte de Paris : clique pour placer le logement"></svg>
+          <div class="map-legend">
+            <span>Nuits plus fraîches</span><span class="ramp" aria-hidden="true"></span><span>plus chaudes</span>
+            <span class="grow"></span><span>Îlots de chaleur estimés</span>
+          </div>
+        </div>
+        <div class="loc-line">
+          <span id="loc-text">Aucun emplacement choisi</span>
+          <select id="arr-select" aria-label="Ou choisis l'arrondissement"></select>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Le logement</legend>
+        <div id="q-main" class="refine-body"></div>
+      </fieldset>
+
+      <details class="refine" open>
+        <summary>Pour affiner <span class="hint">le score devient plus fiable</span></summary>
+        <div id="q-more" class="refine-body"></div>
+      </details>
+    </form>
+
+    <aside class="verdict panel" id="verdict" aria-live="polite">
+      <div class="v-head">
+        <span class="eyebrow">Score de chaleur</span>
+        <span class="chip example" id="v-example">Exemple</span>
+        <span class="chip" id="v-conf"><span class="dot"></span><span id="v-conf-text">Confiance</span></span>
+      </div>
+      <div class="score-row">
+        <div class="score" id="v-score">–<small>/10</small></div>
+        <div class="v-label">
+          <div class="v-name" id="v-name"></div>
+          <p class="v-text" id="v-text"></p>
+        </div>
+      </div>
+      <div>
+        <div class="gauge" aria-hidden="true"><div class="gauge-mark" id="v-mark"></div></div>
+        <div class="gauge-scale" aria-hidden="true"><span>1 · frais</span><span>5</span><span>10 · fournaise</span></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="k">Nuits étouffantes par été</span><span class="v" id="s-n26">–</span><span class="s" id="s-range"></span></div>
+        <div class="stat"><span class="k">Dont au-dessus de 28 °C</span><span class="v" id="s-n28">–</span><span class="s">dans la chambre au coucher</span></div>
+        <div class="stat"><span class="k">Ton appart en 2050</span><span class="v" id="s-2050">–</span><span class="s" id="s-2050s"></span></div>
+        <div class="stat"><span class="k">Nuits tropicales dehors</span><span class="v" id="s-trop">–</span><span class="s">jamais sous 20 °C dans le quartier</span></div>
+      </div>
+      <p class="v-place" id="v-place"></p>
+      <details class="v-conf" id="v-conf-details">
+        <summary id="v-conf-summary">Pourquoi ce niveau de confiance</summary>
+        <ul id="v-conf-list"></ul>
+      </details>
+      <div class="v-actions">
+        <a class="btn hot" href="#partage">Partager mon score</a>
+        <a class="btn ghost" href="#conseils">Voir les conseils</a>
+      </div>
+    </aside>
+  </section>
+
+  <div class="wrap"><hr class="rule"></div>
+
+  <section class="wrap section" id="etes">
+    <div class="section-head row">
+      <div>
+        <h2>Tes dix derniers étés, nuit par nuit</h2>
+        <p>Chaque case est une nuit entre le 1er juin et le 30 septembre. Sa couleur donne la température estimée de la chambre au moment de se coucher. Au-dessus de 26 °C, le sommeil devient difficile.</p>
+      </div>
+      <div class="toggle" role="group" aria-label="Période">
+        <button type="button" id="view-now" aria-pressed="true">Aujourd'hui</button>
+        <button type="button" id="view-2050" aria-pressed="false">En 2050</button>
+      </div>
+    </div>
+    <div class="card stripes-card">
+      <div class="stripes-scroll">
+        <div class="stripes-wrap" id="stripes-wrap">
+          <canvas id="stripes" role="img" aria-label="Température estimée de la chambre pour chaque nuit d'été de 2017 à 2026"></canvas>
+          <div class="tip" id="stripes-tip" hidden></div>
+        </div>
+      </div>
+      <div class="stripes-legend" id="stripes-legend"></div>
+    </div>
+  </section>
+
+  <section class="wrap section grid2">
+    <div class="card waterfall">
+      <div class="section-head">
+        <h2>Une soirée chaude chez toi</h2>
+        <p id="wf-sub">D'où vient chaque degré dans la chambre.</p>
+      </div>
+      <div id="wf" class="wf" role="list" aria-label="Décomposition de la température de la chambre"></div>
+      <p class="caption" id="wf-caption"></p>
+    </div>
+    <div class="card future">
+      <div class="section-head">
+        <h2>Ton appart en 2050</h2>
+        <p>Les mêmes dix étés, réchauffés selon la trajectoire de référence pour l'adaptation de la France (TRACC : +2,7 °C en France en 2050 par rapport à l'ère préindustrielle).</p>
+      </div>
+      <div class="duo">
+        <div><span class="yr">Aujourd'hui</span><span class="big" id="f-now">–</span><span class="sub" id="f-now-s"></span></div>
+        <div><span class="yr">En 2050</span><span class="big" id="f-2050">–</span><span class="sub" id="f-2050-s"></span></div>
+      </div>
+      <div class="bars" id="f-bars"></div>
+      <p class="caption">Nuits étouffantes par été. Les fourchettes basse et haute reflètent l'écart entre modèles climatiques et scénarios d'émissions.</p>
+    </div>
+  </section>
+
+  <section class="wrap section" id="conseils">
+    <div class="section-head">
+      <h2>Ce qui changerait tout</h2>
+      <p>Chaque piste a été recalculée sur tes dix étés. Les nuits gagnées s'additionnent en partie seulement.</p>
+    </div>
+    <div class="advice" id="advice"></div>
+  </section>
+
+  <section class="wrap section grid2" id="partage">
+    <div class="card">
+      <div class="section-head">
+        <h2>À demander pendant la visite</h2>
+        <p>Les réponses qui feraient le plus bouger ton score.</p>
+      </div>
+      <ul class="questions" id="questions"></ul>
+    </div>
+    <div class="card">
+      <div class="section-head">
+        <h2>Partage ton score</h2>
+        <p>Pour prévenir tes colocs, ou faire baisser le loyer.</p>
+      </div>
+      <div class="share">
+        <div class="story" id="story">
+          <span class="s-brand">fournaise</span>
+          <div>
+            <div class="s-score" id="story-score">–<small>/10</small></div>
+            <div class="s-line" id="story-line"></div>
+          </div>
+          <span class="s-meta" id="story-meta"></span>
+        </div>
+        <div>
+          <p class="share-text" id="share-text"></p>
+          <div class="share-actions">
+            <button class="btn" type="button" id="copy-btn">Copier le message</button>
+            <button class="btn ghost" type="button" id="img-btn">Enregistrer l'image</button>
+          </div>
+          <p class="toast" id="share-toast" role="status"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><hr class="rule"></div>
+
+  <section class="wrap section" id="methode">
+    <div class="section-head">
+      <h2>Comment le score est calculé</h2>
+      <p>Tout le calcul tourne dans ton navigateur, avec des coefficients écrits en clair. Ce n'est pas une simulation thermique réglementaire : c'est une estimation rapide pour comparer des logements et savoir quelles questions poser.</p>
+    </div>
+    <div class="method">
+      <div class="card">
+        <ol class="steps">
+          <li><div><strong>Dix étés réels</strong><p>Températures minimales et maximales de chaque jour, de juin à septembre 2017-2026, à la station Météo-France de Paris-Montsouris.</p></div></li>
+          <li><div><strong>Ton quartier</strong><p>Un écart nocturne est ajouté selon la distance au cœur minéral de Paris, la densité de l'arrondissement, la proximité des bois, parcs et de la Seine. Il est plus fort les nuits chaudes.</p></div></li>
+          <li><div><strong>L'inertie du bâtiment</strong><p>Le logement réagit à la moyenne des quatre derniers jours, plus lentement s'il est en pierre, plus vite sous un toit en zinc.</p>
+            <div class="formula">Tlibre = 20 + a × (Tmoy4j − 20) + apports + s × soleil(Tx)</div></div></li>
+          <li><div><strong>Le soleil et la ventilation</strong><p>Toit, orientation, vitrage et volets règlent les apports solaires. La nuit, l'air extérieur ramène la chambre vers la température de la rue, d'autant mieux que l'appartement est traversant.</p>
+            <div class="formula">Tchambre = Tlibre − V × (Tlibre − Tnuit dehors)</div></div></li>
+          <li><div><strong>Le score</strong><p>Une nuit est étouffante quand la chambre dépasse 26 °C au coucher. Une nuit au-dessus de 28 °C compte une fois et demie. Le score suit la racine du nombre de nuits, plafonné à 60.</p>
+            <div class="formula">score = 1 + 9 × √(min(nuits pondérées, 60) / 60)</div></div></li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Poids des réponses</h3>
+        <p class="caption" style="margin:6px 0 10px">Degrés ajoutés à la chambre une soirée de canicule (35 °C), toutes choses égales par ailleurs.</p>
+        <div class="tbl-wrap"><table id="coef-table"><thead><tr><th>Réponse</th><th class="num">Effet</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Données utilisées</h3>
+        <ul class="sources" style="margin-top:10px">
+          <li>Relevés quotidiens de Paris-Montsouris (Météo-France, station 75114001), lus sur <a href="https://www.keraunos.org/climatologie/climat-de-la-france-cartes-donnees-stations/station/75114001/2025/02" target="_blank" rel="noopener">Keraunos</a>, normales 1991-2020 de la <a href="https://object.files.data.gouv.fr/meteofrance/data/synchro_ftp/REF_STATION/FICHECLIM_75114001.pdf" target="_blank" rel="noopener">fiche climatologique</a>.</li>
+          <li>Trajectoire de réchauffement de référence pour l'adaptation (TRACC), ministère de la Transition écologique.</li>
+          <li>Limites des arrondissements : Ville de Paris (open data).</li>
+          <li>Géocodage : Base Adresse Nationale, service de la Géoplateforme (IGN), quand il est joignable.</li>
+          <li>Espaces verts et Seine : tracés simplifiés à partir des emprises connues.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Limites connues</h3>
+        <ul class="limits" style="margin-top:10px">
+          <li>La carte de chaleur est estimée à l'échelle du quartier. Une cour arborée ou une rue très minérale peuvent changer la donne de 1 à 2 °C.</li>
+          <li>Le modèle n'est pas encore calé sur des mesures de température à l'intérieur de vrais logements.</li>
+          <li>Les fourchettes affichées donnent l'incertitude : plus tu renseignes de détails, plus elles se resserrent.</li>
+          <li>Prochaines étapes : chaleur de surface Landsat, données bâtiment BDNB et DPE de l'ADEME à l'adresse, puis Lyon, Marseille et Toulouse.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Fournaise · version 1 · Paris</span>
+    <span>Une estimation pour choisir son logement, pas un diagnostic thermique.</span>
+  </div>
+</footer>
+<script>
+// Généré par scripts/build_data.py — ne pas modifier à la main.
+window.FOURNAISE_DATA = window.FOURNAISE_DATA || {};
+window.FOURNAISE_DATA.climate = {"station":"Paris-Montsouris (75114001)","years":[2017,2018,2019,2020,2021,2022,2023,2024,2025,2026],"firstDay":"06-01","tn":[[15.6,19.5,15.0,11.0,12.4,11.8,10.5,12.1,15.6,15.2,16.3,14.1,12.9,16.7,19.5,14.0,15.4,19.3,18.9,21.2,23.4,23.7,16.5,16.8,18.6,17.0,19.6,16.9,15.1,14.0,14.6,13.5,14.8,14.9,17.4,20.2,21.8,19.0,19.6,16.3,14.7,16.5,15.5,15.1,14.1,18.8,17.9,19.5,23.1,18.3,14.7,16.5,13.7,13.8,15.8,13.0,17.2,16.1,18.3,19.9,14.7,16.7,17.2,18.2,17.9,15.6,13.5,13.8,15.7,13.6,12.6,14.0,13.9,12.9,11.9,17.6,15.7,16.6,17.4,12.2,11.9,16.3,16.3,17.4,15.5,17.0,17.6,17.9,18.9,19.6,16.1,12.0,13.8,12.7,11.0,16.0,18.7,14.3,13.2,15.4,13.2,10.2,12.0,11.6,12.3,11.3,9.6,8.3,9.0,7.9,10.4,7.0,8.8,12.7,10.2,11.4,15.1,15.1,12.6,14.6,15.1,13.6],[16.5,16.0,16.0,18.5,16.2,14.8,17.1,17.4,16.1,17.0,18.0,14.6,11.4,11.0,14.4,14.8,14.5,17.0,17.4,16.6,16.6,10.9,10.5,14.4,13.9,16.1,15.9,17.2,18.6,18.4,21.7,20.7,19.9,20.4,20.4,17.7,19.8,20.6,17.4,17.1,15.1,15.5,18.0,18.4,19.0,19.7,18.8,17.8,18.5,19.3,16.7,18.3,19.8,20.0,22.0,22.4,21.0,19.6,18.6,19.4,20.8,18.6,18.8,20.7,22.0,18.4,19.5,21.2,18.1,16.1,12.0,15.1,15.0,18.2,17.3,17.6,16.4,16.4,14.9,16.0,19.5,19.4,18.1,17.1,14.7,13.0,9.9,17.0,13.2,17.1,15.6,14.2,12.4,12.0,14.5,17.3,18.2,17.8,13.6,10.5,12.2,15.5,13.8,16.1,15.4,12.7,11.3,12.2,12.8,16.7,17.1,15.1,13.7,11.7,13.2,9.1,8.6,7.9,9.1,13.1,8.7,7.2],[14.8,17.3,18.0,15.8,11.4,10.4,14.4,11.7,12.3,13.0,9.5,9.7,10.3,13.5,13.8,14.1,13.5,16.4,19.2,14.6,13.5,13.5,17.2,20.4,21.7,21.0,20.2,19.5,21.0,19.8,17.0,14.5,14.7,14.2,16.6,19.2,17.7,15.5,13.2,15.7,19.7,17.1,17.0,14.2,13.2,13.8,15.7,17.0,17.9,18.8,17.4,17.4,21.0,23.3,25.0,22.3,16.3,15.7,15.5,17.4,15.2,16.5,17.9,16.1,16.9,18.4,18.5,17.4,16.4,21.1,18.3,14.5,13.8,12.4,14.1,17.0,14.1,17.8,17.9,14.7,15.8,12.8,14.1,14.9,16.6,18.3,18.5,20.6,19.2,18.8,14.4,17.6,15.7,12.8,13.8,13.1,12.5,9.9,14.1,11.5,9.6,11.4,14.5,17.1,16.6,13.8,14.6,15.7,16.9,10.9,10.3,11.1,11.5,16.3,13.0,14.9,13.4,16.1,13.7,13.5,13.4,12.4],[14.1,16.4,17.6,12.4,11.4,11.1,10.0,11.7,11.6,10.7,12.4,13.9,13.0,13.2,13.8,14.5,14.1,14.2,13.0,15.9,14.7,12.9,15.3,17.9,20.2,20.9,18.3,16.2,15.0,16.0,18.0,15.1,13.6,14.6,18.4,12.4,12.4,14.0,16.9,17.5,13.2,12.8,14.8,16.6,16.3,15.6,15.7,16.8,16.2,16.8,14.3,13.6,14.9,17.6,17.2,16.1,15.7,18.0,14.4,15.0,20.8,19.5,16.8,15.6,13.9,13.8,17.1,21.0,22.8,24.3,22.7,22.9,22.1,19.5,18.9,18.9,17.7,17.0,16.6,17.4,20.3,20.4,16.9,15.5,14.3,15.6,16.2,14.3,15.1,12.3,13.1,13.4,11.7,11.3,14.9,18.1,15.5,12.2,12.2,15.0,19.3,16.9,15.9,14.3,13.7,15.2,18.0,18.7,17.2,14.3,21.2,17.2,15.2,13.2,15.7,10.6,8.7,8.8,10.3,12.2,13.2,14.6],[13.9,16.8,18.0,15.9,13.4,12.3,13.5,15.0,15.7,17.7,16.5,17.1,15.5,15.9,18.2,20.3,19.2,18.8,18.2,15.7,16.9,14.3,13.4,13.0,11.2,15.6,17.4,16.9,13.4,13.9,13.6,16.0,18.3,16.7,14.7,16.3,14.8,14.5,15.7,16.5,15.0,16.8,16.7,15.6,16.7,16.9,14.2,16.7,18.6,19.1,19.0,18.7,18.1,18.7,17.7,16.3,17.6,15.9,14.5,14.6,14.7,15.3,14.9,15.2,12.0,16.5,16.5,13.9,13.5,13.7,16.5,16.4,17.2,17.7,16.2,18.1,17.0,13.5,15.8,16.9,14.6,15.6,16.1,16.8,15.0,13.6,13.9,14.3,13.3,14.3,15.2,16.0,14.7,12.2,14.2,18.8,18.3,17.8,17.2,17.3,19.7,19.0,15.3,13.6,13.5,17.9,19.0,15.6,13.3,14.8,15.5,13.6,11.6,10.7,11.6,13.9,12.4,15.4,13.9,9.8,12.7,7.0],[11.1,11.6,15.1,16.4,16.5,13.7,15.9,14.5,12.7,14.3,15.9,14.4,12.9,13.9,16.6,18.1,19.1,21.2,15.4,14.7,14.9,16.7,18.5,17.5,16.5,13.2,15.2,13.9,15.4,13.6,11.7,12.0,15.2,13.7,13.8,14.4,16.4,12.9,17.4,14.6,18.2,19.2,21.2,21.5,16.2,15.9,17.9,20.2,23.2,18.8,17.7,17.3,18.9,18.2,19.9,17.1,14.8,16.5,17.1,18.4,18.9,20.2,18.7,20.5,21.2,16.2,13.7,14.5,15.6,17.0,18.8,19.9,20.4,20.5,18.1,16.4,17.8,17.5,17.0,18.4,14.2,15.3,16.9,18.6,19.5,19.7,18.6,16.7,15.7,16.8,15.3,17.0,17.4,18.2,17.7,15.4,17.4,16.1,16.0,14.9,15.1,14.9,13.1,13.9,19.5,19.2,15.2,13.2,10.2,9.0,10.6,9.4,10.0,9.7,10.9,13.2,11.9,11.8,10.7,11.3,10.5,7.7],[14.6,10.8,11.8,14.1,13.6,12.3,14.3,15.7,17.5,19.4,20.5,18.0,17.5,16.9,17.9,18.1,19.7,19.2,16.2,18.3,18.1,17.8,15.9,17.8,19.6,16.7,15.8,16.9,20.1,15.5,16.5,14.6,16.7,15.0,12.1,13.8,16.6,21.1,21.7,18.3,17.9,17.1,16.9,17.3,20.3,14.8,13.9,15.9,17.3,15.4,15.7,14.1,17.6,17.4,13.8,12.3,18.7,18.6,16.8,15.6,17.6,15.6,17.0,15.4,15.2,13.4,13.7,12.8,15.4,17.1,16.0,18.0,18.1,16.3,16.0,17.7,17.9,18.6,19.5,21.3,18.4,18.6,19.1,18.8,21.3,19.7,14.1,13.3,13.9,13.6,13.8,13.9,17.1,16.5,18.9,18.2,18.7,20.7,18.0,20.2,21.5,21.1,20.5,18.6,17.1,16.2,15.9,16.4,17.4,17.2,13.4,15.9,14.8,12.5,10.7,8.5,10.0,14.1,13.8,16.8,18.4,12.1],[13.0,12.2,10.0,14.3,15.1,11.1,10.9,11.7,12.2,11.6,9.9,9.6,10.8,13.3,11.6,13.1,14.5,16.5,16.3,16.4,16.6,13.6,13.3,15.6,18.2,19.9,20.0,15.0,15.0,15.0,15.3,15.2,13.8,14.7,13.3,14.4,11.1,13.3,17.4,19.1,16.9,14.2,13.0,13.3,14.1,15.9,15.0,17.0,20.0,20.6,19.7,15.3,18.8,15.6,18.2,18.4,16.4,13.0,16.6,21.1,21.3,20.4,19.9,16.8,17.3,16.0,17.3,16.3,17.2,19.0,16.2,18.4,21.6,20.9,20.3,19.4,18.2,19.8,14.9,13.2,13.9,12.3,12.1,16.6,18.6,11.8,12.5,14.8,16.3,17.9,16.8,15.5,18.8,17.6,18.2,17.0,15.5,12.5,16.9,13.1,15.2,11.9,11.9,9.0,8.0,8.5,8.5,12.8,13.9,14.1,15.4,14.5,15.0,16.8,14.4,13.5,13.2,14.9,11.5,8.5,6.4,11.9],[17.1,15.0,12.2,14.1,13.9,13.5,14.1,12.4,11.9,12.9,14.9,16.6,21.2,19.8,17.2,13.3,16.5,17.1,18.2,19.6,19.0,21.9,18.0,14.7,19.9,19.3,20.2,20.0,18.9,20.9,22.6,20.7,17.2,15.3,17.1,13.6,14.9,14.0,12.6,15.8,18.3,18.7,17.8,20.4,17.7,19.1,17.1,20.1,21.1,16.7,16.8,17.0,17.4,16.3,16.5,17.2,16.6,16.4,14.1,16.6,16.2,17.9,14.7,14.3,18.5,17.1,14.1,15.1,17.3,18.2,14.7,16.5,20.2,21.9,20.0,18.5,18.9,16.3,15.8,17.9,18.5,15.9,13.7,13.1,14.0,14.1,16.4,18.3,16.9,14.8,12.6,17.7,13.8,12.1,16.9,14.7,13.5,12.4,15.6,18.1,14.4,11.8,13.5,11.6,13.4,13.7,15.7,12.5,12.9,12.5,13.0,18.8,13.8,10.4,10.3,10.3,10.0,10.0,11.0,8.3,10.2,10.8],[14.7,16.1,13.5,14.7,11.6,13.1,10.3,14.3,10.7,12.6,10.3,16.7,16.3,14.5,14.2,20.4,17.3,18.7,20.6,20.6,21.4,24.2,24.1,25.4,26.4,26.2,22.5,21.6,17.2,17.0,16.7,15.6,16.3,15.3,17.4,18.5,20.6,20.0,22.5,21.8,22.3,22.0,22.4,20.8,23.6,21.2,19.7,18.8,15.2,13.5,14.3,15.3,15.9,16.3,17.8,16.7,16.4,17.0,19.7,19.2,19.6,17.6,16.9,20.8,21.6,19.9,17.2,14.6,16.0,19.8,20.0,18.5,19.3,21.4,23.3,21.3,20.9,21.4,19.3,19.4,15.7,16.5,13.4,14.0,15.1,14.5,18.6,19.0,16.9,15.7,16.1,16.4,15.2,14.4,16.8,18.3,16.9,14.8,18.1,18.5,13.0,11.3,13.1,15.5,17.5,17.8,16.7,14.1,12.7,12.8,12.7,16.0,12.7,12.6,12.8,14.9,12.8,15.6,13.8,17.2,16.1,19.6]],"tx":[[28.3,28.1,20.7,20.2,24.3,17.5,20.5,28.0,23.0,28.0,29.9,21.6,24.7,30.0,28.3,23.6,28.2,30.5,34.4,34.6,36.9,34.7,24.4,26.0,27.5,29.5,25.8,24.4,22.4,20.4,21.1,23.5,24.8,29.1,32.8,35.2,33.5,30.6,29.1,22.9,25.0,23.3,25.4,23.2,25.8,29.2,30.1,33.9,29.4,22.9,25.3,21.9,21.9,20.9,22.0,24.1,22.1,23.3,28.9,25.9,24.1,26.8,30.1,26.6,26.1,24.1,24.4,27.5,20.2,19.7,20.3,21.0,20.7,23.9,28.3,26.6,26.0,24.8,23.1,21.9,23.1,23.8,28.9,28.1,25.1,23.0,28.5,28.9,30.5,32.9,23.4,21.6,22.7,21.0,21.9,25.0,22.0,21.0,20.5,19.8,18.4,19.8,18.4,19.2,18.4,16.8,17.8,16.4,17.2,17.9,17.3,18.6,21.4,20.3,21.0,23.5,22.1,21.7,20.1,20.1,25.6,18.7],[21.7,24.6,27.3,26.5,22.6,24.0,25.1,26.2,25.1,25.9,21.1,20.5,18.3,21.4,24.9,23.0,21.8,24.3,25.9,29.1,21.5,22.4,22.9,23.5,25.8,28.2,29.8,29.2,29.7,33.0,33.8,31.3,30.5,30.0,26.8,30.0,31.4,30.7,27.3,23.7,22.6,26.0,28.7,30.7,31.5,30.9,26.9,29.4,31.2,26.5,26.9,27.9,30.9,32.4,34.4,36.2,37.4,26.3,28.9,29.1,28.7,30.9,33.3,35.4,33.8,31.8,34.4,36.9,27.6,19.4,23.5,25.5,31.5,25.0,25.2,26.4,31.4,25.4,25.7,28.7,24.1,26.7,29.8,26.3,21.0,20.3,23.6,23.5,28.1,21.4,21.0,23.3,23.5,25.2,25.3,20.3,25.9,21.9,20.6,23.9,29.5,24.7,29.2,27.4,17.8,20.9,22.6,25.1,29.2,24.4,25.3,25.6,18.8,20.2,22.9,17.7,17.9,21.7,25.6,18.9,18.5,17.8],[29.8,32.8,21.9,28.6,16.4,21.0,17.5,20.1,21.0,18.9,19.8,18.0,19.8,23.6,22.3,23.4,27.4,29.7,26.7,21.5,22.8,25.5,29.9,31.4,33.2,34.6,33.0,33.9,36.5,28.8,24.8,26.4,26.9,28.8,32.3,32.3,27.8,24.9,26.1,28.5,29.4,27.0,26.9,23.0,25.5,27.1,29.5,27.8,29.2,28.2,28.1,33.0,37.6,39.5,42.6,30.2,23.2,25.1,29.4,25.9,24.4,27.4,28.1,25.6,31.5,27.3,23.8,26.5,29.9,24.6,26.1,23.1,21.1,21.3,25.2,23.9,25.4,20.5,22.7,23.0,23.3,24.7,27.3,29.3,31.6,32.8,33.4,33.4,29.9,25.2,28.8,31.6,23.2,23.2,23.7,24.6,19.1,21.5,19.9,19.2,19.8,23.3,24.1,23.8,24.0,26.3,27.7,25.9,22.7,20.1,20.0,23.7,27.7,22.1,22.0,19.6,19.7,21.6,20.4,19.5,20.2,19.1],[27.7,30.4,26.9,17.1,18.0,18.7,20.5,19.5,20.1,20.9,24.2,21.4,24.9,23.3,22.5,23.8,21.6,22.3,21.1,25.0,22.7,25.2,30.3,33.4,35.2,31.8,23.4,24.1,22.4,22.9,23.6,22.0,23.0,24.0,24.4,21.8,25.3,27.8,31.7,23.5,24.6,26.5,27.8,22.9,22.4,20.9,27.3,29.0,31.0,27.2,26.6,25.8,28.8,25.3,27.5,25.9,32.0,23.9,27.1,33.2,39.3,27.6,24.6,23.3,26.6,31.4,35.1,37.1,37.8,39.1,34.9,36.8,36.4,28.7,27.1,28.5,27.6,24.3,27.0,25.6,31.6,29.2,26.1,22.7,22.9,29.4,24.3,26.6,22.5,18.2,21.6,20.5,22.1,22.4,27.7,29.3,21.1,20.1,22.8,26.0,26.9,26.2,26.1,22.7,28.6,33.5,34.3,31.4,26.0,27.5,29.0,28.0,26.3,26.0,22.5,17.9,13.7,15.0,14.6,15.5,17.8,19.8],[28.7,27.5,28.7,22.2,19.9,24.1,24.7,26.3,28.3,27.8,26.6,23.7,27.4,31.1,30.1,33.3,28.4,26.8,26.8,25.6,25.9,20.0,16.6,21.5,21.4,22.0,24.5,25.7,19.5,18.4,23.7,27.4,24.0,22.7,22.7,23.3,23.8,23.1,22.3,20.2,24.4,24.3,18.9,21.7,24.9,21.7,26.4,29.9,30.3,29.2,30.0,29.3,30.3,26.6,24.3,25.0,19.2,24.0,23.4,23.3,23.4,23.5,23.6,19.9,20.9,25.0,23.8,22.6,23.0,23.2,24.5,27.2,30.5,29.0,31.0,29.9,21.5,19.7,21.1,20.7,24.8,26.8,22.3,20.6,24.7,25.3,21.6,22.6,22.0,19.6,22.5,24.1,23.5,25.7,28.6,28.4,30.3,30.0,30.0,30.5,26.8,25.5,22.4,22.8,26.6,26.3,21.3,22.9,24.1,24.6,22.7,20.5,18.9,21.4,22.0,22.2,24.6,22.2,19.1,19.1,16.1,18.1],[23.2,25.5,23.4,29.8,22.2,22.1,23.7,21.7,21.9,23.6,26.3,24.6,24.0,27.5,31.0,30.4,34.9,36.7,25.3,23.3,27.4,26.1,28.7,25.0,19.1,23.2,24.1,28.0,27.3,18.7,22.3,27.7,25.0,26.8,26.1,26.7,21.9,28.0,29.9,28.5,30.8,33.6,36.6,31.0,27.4,29.7,32.7,38.5,40.5,23.0,27.7,25.7,27.1,33.5,27.8,22.8,26.6,27.8,29.8,30.4,28.9,27.3,31.7,35.9,28.7,26.1,25.7,28.1,29.6,32.0,33.5,33.1,34.5,33.2,28.3,27.1,28.3,27.7,28.3,24.4,25.4,26.9,26.4,28.1,32.8,31.2,26.8,25.5,26.8,29.3,27.7,27.5,28.6,24.8,24.3,29.7,30.3,29.1,21.9,23.4,20.0,20.1,23.2,27.6,26.4,26.6,22.5,18.8,17.4,19.5,18.9,17.5,19.8,21.0,21.0,17.6,20.0,15.0,14.2,15.5,14.8,18.6],[28.0,22.0,25.7,27.1,27.1,28.1,29.2,29.3,30.8,30.7,27.3,28.1,30.0,30.1,29.0,30.3,31.1,30.3,25.8,27.6,28.7,25.3,29.6,30.7,33.8,24.0,25.6,26.3,26.1,24.4,23.5,24.2,24.5,24.7,21.9,27.3,31.6,34.2,28.5,29.6,32.0,25.3,24.2,31.8,25.5,25.6,25.4,29.7,23.9,25.9,24.4,26.3,25.1,24.0,20.2,24.1,22.3,24.9,25.9,24.2,21.4,22.6,24.7,20.0,22.1,19.5,19.4,22.8,24.1,25.0,29.0,27.4,26.6,25.0,28.9,25.3,28.2,29.2,31.9,27.4,31.0,29.5,31.2,31.9,28.5,21.9,22.7,21.3,21.3,21.2,20.4,18.9,23.4,30.4,31.9,31.5,33.9,33.7,33.6,35.1,35.5,34.8,28.0,19.9,22.1,25.5,28.4,26.1,26.8,24.5,21.6,24.5,17.4,17.4,18.0,22.0,23.9,26.2,27.1,23.0,21.7,22.3],[14.2,17.9,23.2,24.6,21.5,21.8,22.7,22.5,22.1,17.8,18.2,18.8,21.4,23.5,18.2,19.1,24.4,24.7,22.6,23.0,24.6,21.2,25.0,29.0,30.6,31.1,31.0,25.1,24.1,24.3,20.6,21.9,20.9,22.4,26.8,21.7,22.5,26.5,25.6,26.0,25.9,20.3,23.8,23.7,27.2,23.6,26.2,30.1,34.4,31.2,26.3,25.7,23.5,25.9,28.9,22.3,19.0,25.7,31.5,36.2,32.4,30.8,28.0,25.1,25.1,30.0,29.5,24.7,27.8,26.9,29.9,32.6,37.1,26.8,28.2,27.3,26.1,20.6,21.3,23.6,24.8,22.5,26.0,26.2,30.3,22.6,24.5,28.2,32.4,25.3,19.1,25.0,29.2,26.3,21.8,22.6,17.9,23.7,22.6,21.9,18.2,18.5,17.4,15.9,17.9,18.2,20.0,19.9,21.7,24.2,25.9,24.7,24.4,20.3,20.4,17.7,16.3,19.6,17.4,15.3,14.1,18.0],[22.9,22.6,24.4,20.1,19.6,22.4,20.2,19.7,23.3,24.9,28.2,32.2,34.0,28.8,23.4,27.1,29.1,29.6,31.9,32.4,35.3,29.7,25.8,30.5,36.5,26.7,27.6,30.4,31.2,35.5,38.1,32.6,27.2,28.2,27.5,20.1,20.7,23.1,26.4,28.9,29.9,29.3,31.6,28.0,25.0,22.5,28.3,32.1,27.3,24.6,22.5,22.6,23.5,23.7,26.9,26.8,23.3,23.5,23.3,24.9,25.0,23.5,22.5,25.6,29.5,23.1,25.0,29.9,27.4,27.6,28.8,32.3,35.2,34.5,30.5,31.3,28.4,28.4,29.1,28.8,19.8,24.7,22.8,25.3,25.5,28.8,29.2,25.9,23.6,20.7,22.2,21.6,23.4,18.6,25.0,22.2,23.2,25.3,31.2,23.4,23.1,20.9,20.7,20.5,19.7,20.6,21.2,19.1,22.7,25.3,30.4,21.2,18.7,17.1,15.3,10.9,12.7,15.1,15.9,20.4,21.6,19.4],[26.1,21.4,20.5,22.6,19.8,21.6,23.3,22.4,20.2,18.2,19.0,26.3,28.0,26.5,28.6,28.7,32.7,36.9,36.8,36.0,37.0,38.4,37.3,40.6,40.1,37.8,36.8,30.5,28.5,29.3,24.9,25.9,28.6,30.6,29.3,34.2,33.8,34.3,34.3,36.0,36.7,36.5,35.8,35.0,32.7,33.9,28.7,29.8,25.2,24.8,26.3,26.8,25.6,29.1,29.7,26.5,27.4,33.7,38.3,30.2,29.3,28.8,33.1,36.4,32.4,28.2,25.4,27.7,32.1,33.8,32.1,33.3,36.0,38.1,39.4,31.2,31.5,29.1,26.5,29.4,25.5,23.8,24.2,24.9,27.8,29.0,29.6,27.2,23.6,22.3,24.6,23.8,24.3,25.7,27.0,28.2,24.8,28.3,28.3,26.2,21.2,21.0,25.0,25.5,26.8,28.8,32.1,21.8,21.9,21.4,24.7,22.9,22.5,24.5,26.1,23.7,27.5,22.2,27.1,23.6,28.0,21.9]]};
+window.FOURNAISE_DATA.arrondissements = [{"n":1,"name":"Louvre","rings":[[[2.3208,48.863],[2.3252,48.8689],[2.3251,48.8694],[2.328,48.8699],[2.3303,48.8683],[2.3509,48.8634],[2.3474,48.8571],[2.3469,48.857],[2.346,48.8554],[2.3445,48.854],[2.3424,48.8552],[2.3405,48.8568],[2.3373,48.8585],[2.3315,48.8597],[2.3208,48.863]]]},{"n":2,"name":"Bourse","rings":[[[2.34,48.872],[2.3479,48.8707],[2.3543,48.8693],[2.351,48.8634],[2.3303,48.8683],[2.3282,48.8697],[2.3281,48.8699],[2.34,48.872]]]},{"n":3,"name":"Temple","rings":[[[2.3624,48.8679],[2.3648,48.8664],[2.3667,48.8632],[2.3685,48.8558],[2.3643,48.8564],[2.3616,48.8573],[2.3586,48.8588],[2.3568,48.8601],[2.3534,48.8612],[2.3502,48.862],[2.3542,48.8693],[2.3624,48.8679]]]},{"n":4,"name":"Hôtel-de-Ville","rings":[[[2.3647,48.846],[2.3609,48.8486],[2.3547,48.8508],[2.3501,48.852],[2.347,48.8533],[2.3446,48.854],[2.346,48.8554],[2.347,48.857],[2.3473,48.8571],[2.3502,48.862],[2.3533,48.8612],[2.3568,48.8602],[2.3586,48.8587],[2.3617,48.8573],[2.3643,48.8564],[2.3684,48.8559],[2.3692,48.8528],[2.3663,48.847],[2.3647,48.846]]]},{"n":5,"name":"Panthéon","rings":[[[2.3518,48.8368],[2.3455,48.8376],[2.3365,48.8396],[2.3426,48.8503],[2.3442,48.8538],[2.3445,48.854],[2.3469,48.8533],[2.3502,48.852],[2.3548,48.8508],[2.361,48.8486],[2.366,48.845],[2.3649,48.8444],[2.3618,48.84],[2.3518,48.8368]]]},{"n":6,"name":"Luxembourg","rings":[[[2.3165,48.8469],[2.319,48.8479],[2.3241,48.8503],[2.327,48.8516],[2.3287,48.852],[2.3316,48.8563],[2.3339,48.8592],[2.3375,48.8585],[2.3406,48.8567],[2.3425,48.8552],[2.3445,48.854],[2.3443,48.8538],[2.3426,48.8503],[2.3365,48.8396],[2.32,48.8451],[2.3165,48.8469]]]},{"n":7,"name":"Palais-Bourbon","rings":[[[2.3095,48.8458],[2.3073,48.8472],[2.2899,48.8582],[2.2948,48.8619],[2.3002,48.8635],[2.3183,48.8638],[2.3315,48.8597],[2.3338,48.8592],[2.3316,48.8563],[2.3304,48.8544],[2.3293,48.8527],[2.3285,48.8518],[2.3271,48.8516],[2.3193,48.8478],[2.3137,48.8459],[2.3114,48.8452],[2.3095,48.8458]]]},{"n":8,"name":"Élysée","rings":[[[2.3016,48.8646],[2.2999,48.8651],[2.2988,48.8687],[2.2973,48.8712],[2.2955,48.8733],[2.2946,48.8732],[2.294,48.8737],[2.2944,48.8743],[2.2954,48.8743],[2.2978,48.8777],[2.2976,48.878],[2.298,48.8785],[2.2988,48.8783],[2.309,48.8805],[2.3166,48.8813],[2.3272,48.8835],[2.3268,48.8759],[2.3266,48.8754],[2.327,48.8738],[2.3269,48.8733],[2.3263,48.8726],[2.3265,48.8725],[2.3258,48.8695],[2.3252,48.8694],[2.3253,48.869],[2.3208,48.8631],[2.3183,48.8638],[2.3017,48.8635],[2.3016,48.8646]]]},{"n":9,"name":"Opéra","rings":[[[2.3396,48.882],[2.3495,48.8838],[2.3499,48.8807],[2.3492,48.8789],[2.349,48.8772],[2.3481,48.8757],[2.3479,48.8739],[2.3479,48.8707],[2.34,48.872],[2.3258,48.8696],[2.3265,48.8725],[2.3263,48.8726],[2.3269,48.8733],[2.327,48.8738],[2.3266,48.8754],[2.3268,48.876],[2.3272,48.8834],[2.3279,48.8836],[2.3295,48.8847],[2.3374,48.8823],[2.3396,48.882]]]},{"n":10,"name":"Enclos-St-Laurent","rings":[[[2.3688,48.8841],[2.3691,48.8833],[2.3702,48.8826],[2.3703,48.8786],[2.3708,48.8781],[2.3706,48.8776],[2.377,48.8721],[2.3729,48.8706],[2.3642,48.8678],[2.3635,48.8672],[2.3624,48.8679],[2.3543,48.8693],[2.3479,48.8707],[2.3478,48.8739],[2.3482,48.8758],[2.349,48.8773],[2.3493,48.8792],[2.3499,48.8807],[2.3495,48.8838],[2.3592,48.8845],[2.3648,48.8844],[2.3688,48.8841]]]},{"n":11,"name":"Popincourt","rings":[[[2.3832,48.8671],[2.3838,48.8661],[2.3875,48.8628],[2.3897,48.8584],[2.3922,48.8576],[2.3943,48.8565],[2.3984,48.8513],[2.3992,48.8487],[2.3991,48.8481],[2.3959,48.8484],[2.3843,48.8502],[2.38,48.8505],[2.3715,48.8525],[2.3703,48.8532],[2.3692,48.8531],[2.3667,48.8632],[2.3647,48.8664],[2.3635,48.8673],[2.3642,48.8678],[2.3769,48.8721],[2.3832,48.8671]]]},{"n":12,"name":"Reuilly","rings":[[[2.4145,48.8468],[2.4125,48.8365],[2.4096,48.8343],[2.4141,48.8337],[2.4221,48.8359],[2.4202,48.8406],[2.4193,48.8421],[2.42,48.8436],[2.4218,48.8445],[2.4245,48.8418],[2.4384,48.8406],[2.4392,48.8445],[2.4409,48.8444],[2.4408,48.846],[2.4466,48.8459],[2.4463,48.8449],[2.4555,48.8441],[2.4633,48.8422],[2.4698,48.8365],[2.4691,48.8341],[2.4652,48.8315],[2.4643,48.8276],[2.466,48.8273],[2.4648,48.823],[2.4626,48.8195],[2.4589,48.8171],[2.4539,48.817],[2.4486,48.8182],[2.4375,48.8184],[2.4373,48.8196],[2.4319,48.8226],[2.4276,48.8242],[2.422,48.8242],[2.4197,48.8241],[2.4173,48.8246],[2.4111,48.825],[2.4067,48.827],[2.4035,48.8293],[2.4011,48.8297],[2.3956,48.828],[2.3907,48.8272],[2.3886,48.8265],[2.3645,48.8461],[2.3664,48.847],[2.3692,48.8531],[2.3704,48.8531],[2.3715,48.8524],[2.3802,48.8504],[2.3845,48.8501],[2.396,48.8483],[2.4145,48.8468]]]},{"n":13,"name":"Gobelins","rings":[[[2.342,48.8383],[2.3454,48.8376],[2.3489,48.8371],[2.3519,48.8367],[2.3619,48.84],[2.3649,48.8444],[2.366,48.845],[2.3886,48.8265],[2.3853,48.8253],[2.3788,48.8215],[2.3633,48.8161],[2.3568,48.8164],[2.3544,48.8175],[2.3517,48.818],[2.3468,48.8164],[2.3441,48.8164],[2.3441,48.8176],[2.3446,48.8194],[2.3439,48.8203],[2.3424,48.8215],[2.3415,48.8237],[2.3417,48.8264],[2.3413,48.8314],[2.3411,48.8319],[2.342,48.8383]]]},{"n":14,"name":"Observatoire","rings":[[[2.3015,48.8254],[2.321,48.8415],[2.3215,48.841],[2.3246,48.8437],[2.3364,48.8397],[2.3421,48.8383],[2.3411,48.832],[2.3415,48.8288],[2.3416,48.8256],[2.3415,48.8233],[2.3425,48.8213],[2.344,48.8201],[2.3446,48.8194],[2.3442,48.8176],[2.3441,48.8165],[2.3357,48.8168],[2.3329,48.8185],[2.3015,48.8254]]]},{"n":15,"name":"Vaugirard","rings":[[[2.2924,48.8275],[2.277,48.8338],[2.2743,48.8304],[2.275,48.8298],[2.2728,48.829],[2.2706,48.8281],[2.2678,48.8282],[2.2673,48.8311],[2.2706,48.8336],[2.2692,48.8353],[2.2662,48.8347],[2.2641,48.8352],[2.2782,48.849],[2.2876,48.8557],[2.29,48.8583],[2.3093,48.8459],[2.3113,48.8453],[2.3165,48.8468],[2.32,48.8452],[2.3246,48.8436],[2.3216,48.841],[2.3209,48.8416],[2.3015,48.8255],[2.2924,48.8275]]]},{"n":16,"name":"Passy","rings":[[[2.2801,48.8783],[2.2949,48.8739],[2.2974,48.8712],[2.299,48.8684],[2.2999,48.8653],[2.3016,48.8646],[2.3018,48.8634],[2.2941,48.8617],[2.2889,48.8576],[2.286,48.8543],[2.2774,48.848],[2.264,48.8351],[2.2579,48.8357],[2.2539,48.8393],[2.2548,48.8454],[2.2503,48.8455],[2.2417,48.8483],[2.2273,48.8486],[2.2259,48.8554],[2.2316,48.8665],[2.2393,48.8705],[2.2467,48.8763],[2.2551,48.8742],[2.2582,48.8805],[2.2801,48.8783]]]},{"n":17,"name":"Batignolles-Monceau","rings":[[[2.28,48.8784],[2.2832,48.8828],[2.2919,48.8884],[2.2977,48.8896],[2.3062,48.8951],[2.3141,48.8982],[2.3219,48.9006],[2.3301,48.9008],[2.3256,48.8876],[2.3272,48.8835],[2.3169,48.8813],[2.3087,48.8804],[2.2981,48.8782],[2.295,48.8739],[2.28,48.8784]]]},{"n":18,"name":"Butte-Montmartre","rings":[[[2.3704,48.9007],[2.3704,48.8967],[2.3718,48.8954],[2.3703,48.8945],[2.3671,48.8876],[2.3666,48.8866],[2.3647,48.8844],[2.3588,48.8844],[2.3495,48.8837],[2.3397,48.8819],[2.3373,48.8823],[2.3295,48.8844],[2.3279,48.8835],[2.3272,48.8834],[2.3256,48.8876],[2.3302,48.9008],[2.3532,48.9013],[2.3704,48.9007]]]},{"n":19,"name":"Buttes-Chaumont","rings":[[[2.4087,48.8779],[2.4023,48.876],[2.3953,48.8753],[2.3902,48.8755],[2.3877,48.8745],[2.3865,48.8746],[2.3847,48.8739],[2.3768,48.8722],[2.3704,48.8781],[2.3702,48.8828],[2.3689,48.8833],[2.3687,48.8841],[2.3647,48.8844],[2.3668,48.8867],[2.3683,48.8902],[2.3703,48.8945],[2.3718,48.8955],[2.3703,48.8966],[2.3704,48.9008],[2.3769,48.9003],[2.3885,48.9007],[2.392,48.8998],[2.3938,48.8982],[2.3973,48.8859],[2.4019,48.8818],[2.4066,48.8801],[2.4087,48.8779]]]},{"n":20,"name":"Ménilmontant","rings":[[[2.4133,48.8653],[2.4141,48.8591],[2.414,48.8538],[2.4147,48.8526],[2.4153,48.851],[2.4144,48.8468],[2.399,48.8481],[2.3993,48.8488],[2.3984,48.8513],[2.3944,48.8565],[2.3897,48.8585],[2.3874,48.863],[2.3835,48.8662],[2.3832,48.8671],[2.3768,48.8722],[2.385,48.874],[2.3865,48.8747],[2.3879,48.8745],[2.3904,48.8755],[2.3953,48.8752],[2.4022,48.876],[2.4086,48.8779],[2.411,48.8743],[2.4134,48.8711],[2.4133,48.8653]]]}];
+
+</script>
+<script>
+/*
+ * Fournaise — modèle de chaleur intérieure (version 1, Paris).
+ *
+ * Tout le calcul tourne dans le navigateur, sans serveur. Chaque coefficient
+ * est écrit ici en clair pour que le score reste vérifiable.
+ *
+ * Chaîne de calcul, pour chaque jour du 1er juin au 30 septembre des 10 derniers étés :
+ *   1. Relevés réels Tn / Tx de la station Paris-Montsouris.
+ *   2. Correction de quartier (îlot de chaleur) : Tn + U·f(nuit), Tx + 0,25·U.
+ *   3. Moyenne glissante sur 4 jours (inertie du bâtiment) : Trm.
+ *   4. Température « libre » du logement le soir :
+ *        Tlibre = Trm + apports internes + s · ensoleillement(Tx)
+ *   5. Ventilation nocturne : Tnuit = Tlibre − V · (Tlibre − Tn local).
+ *   6. Nuit étouffante si Tnuit ≥ 26 °C ; très difficile si ≥ 28 °C.
+ */
+(function (root) {
+  "use strict";
+
+  // ---------------------------------------------------------------------------
+  // Géographie de Paris
+  // ---------------------------------------------------------------------------
+  var MONTSOURIS = [2.3378, 48.8222];
+  var CORE = [2.347, 48.8605]; // Châtelet, cœur minéral de l'îlot de chaleur
+  var BBOX = { minLon: 2.224, maxLon: 2.47, minLat: 48.815, maxLat: 48.903 };
+  var KM_LON = 111.32 * Math.cos((48.86 * Math.PI) / 180); // km par degré de longitude
+  var KM_LAT = 110.57;
+
+  // Espaces verts majeurs : [nom, lon, lat, demi-axe E-O (km), demi-axe N-S (km), type]
+  // type "bois" : rafraîchissement fort et étendu ; "parc" : effet local.
+  var GREEN = [
+    ["Bois de Boulogne", 2.2525, 48.862, 1.25, 2.2, "bois"],
+    ["Bois de Vincennes", 2.438, 48.834, 2.1, 1.0, "bois"],
+    ["Jardin du Luxembourg", 2.3372, 48.8462, 0.33, 0.3, "parc"],
+    ["Jardin des Plantes", 2.36, 48.844, 0.28, 0.25, "parc"],
+    ["Buttes-Chaumont", 2.3825, 48.88, 0.32, 0.24, "parc"],
+    ["Parc Montsouris", 2.338, 48.822, 0.25, 0.22, "parc"],
+    ["Cité universitaire", 2.337, 48.8195, 0.35, 0.12, "parc"],
+    ["Parc Monceau", 2.309, 48.8795, 0.2, 0.17, "parc"],
+    ["Jardin des Tuileries", 2.327, 48.8635, 0.45, 0.13, "parc"],
+    ["Jardins des Champs-Élysées", 2.315, 48.867, 0.4, 0.1, "parc"],
+    ["Champ-de-Mars", 2.298, 48.856, 0.22, 0.45, "parc"],
+    ["Esplanade des Invalides", 2.3135, 48.859, 0.15, 0.35, "parc"],
+    ["Jardins du Trocadéro", 2.2895, 48.8615, 0.18, 0.15, "parc"],
+    ["Père-Lachaise", 2.3935, 48.861, 0.45, 0.33, "parc"],
+    ["Parc de la Villette", 2.3905, 48.8935, 0.35, 0.4, "parc"],
+    ["Parc André-Citroën", 2.275, 48.841, 0.25, 0.2, "parc"],
+    ["Parc de Bercy", 2.383, 48.835, 0.35, 0.12, "parc"],
+    ["Cimetière du Montparnasse", 2.3265, 48.838, 0.3, 0.22, "parc"],
+    ["Cimetière de Montmartre", 2.3305, 48.8875, 0.25, 0.15, "parc"],
+    ["Parc Georges-Brassens", 2.3005, 48.8325, 0.18, 0.15, "parc"],
+    ["Parc Martin-Luther-King", 2.316, 48.888, 0.25, 0.12, "parc"],
+    ["Parc de Belleville", 2.385, 48.8715, 0.15, 0.12, "parc"],
+    ["Parc Kellermann", 2.355, 48.819, 0.15, 0.12, "parc"]
+  ];
+  var GREEN_EFFECT = { bois: { a: 2.2, l: 0.45 }, parc: { a: 1.0, l: 0.2 } };
+
+  // Tracé simplifié de la Seine, d'amont en aval.
+  var SEINE = [
+    [2.414, 48.8235], [2.392, 48.83], [2.378, 48.8395], [2.366, 48.8465], [2.359, 48.8505],
+    [2.352, 48.8535], [2.344, 48.8565], [2.338, 48.8585], [2.329, 48.861], [2.32, 48.864],
+    [2.31, 48.8645], [2.302, 48.8635], [2.2945, 48.86], [2.287, 48.8545], [2.28, 48.8485],
+    [2.273, 48.841], [2.263, 48.834]
+  ];
+
+  // Densité bâtie et minéralité par arrondissement (°C ajoutés la nuit).
+  var DENSITY = {
+    1: 0.1, 2: 0.35, 3: 0.35, 4: 0.2, 5: 0.1, 6: 0.1, 7: 0, 8: 0.1, 9: 0.3, 10: 0.35,
+    11: 0.4, 12: 0, 13: 0.1, 14: 0, 15: 0.1, 16: -0.2, 17: 0.15, 18: 0.3, 19: 0.15, 20: 0.25
+  };
+
+  function toKm(lon, lat) {
+    return [(lon - CORE[0]) * KM_LON, (lat - CORE[1]) * KM_LAT];
+  }
+
+  function pointInRing(lon, lat, ring) {
+    var inside = false;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+      if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+
+  function arrondissementAt(lon, lat, arrs) {
+    if (!arrs) return null;
+    for (var i = 0; i < arrs.length; i++) {
+      for (var r = 0; r < arrs[i].rings.length; r++) {
+        if (pointInRing(lon, lat, arrs[i].rings[r])) return arrs[i];
+      }
+    }
+    return null;
+  }
+
+  function distToSegmentKm(p, a, b) {
+    var dx = b[0] - a[0], dy = b[1] - a[1];
+    var t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy || 1);
+    t = Math.max(0, Math.min(1, t));
+    var x = a[0] + t * dx - p[0], y = a[1] + t * dy - p[1];
+    return Math.sqrt(x * x + y * y);
+  }
+
+  var SEINE_KM = SEINE.map(function (c) { return toKm(c[0], c[1]); });
+
+  function seineDistanceKm(lon, lat) {
+    var p = toKm(lon, lat), best = Infinity;
+    for (var i = 1; i < SEINE_KM.length; i++) best = Math.min(best, distToSegmentKm(p, SEINE_KM[i - 1], SEINE_KM[i]));
+    return best;
+  }
+
+  // Effet de chaque espace vert : renvoie {cooling (°C, négatif), nearest:{name, km}}
+  function greenEffect(lon, lat) {
+    var cooling = 0, nearest = null;
+    for (var i = 0; i < GREEN.length; i++) {
+      var g = GREEN[i];
+      var dx = (lon - g[1]) * KM_LON, dy = (lat - g[2]) * KM_LAT;
+      var r = Math.sqrt((dx / g[3]) * (dx / g[3]) + (dy / g[4]) * (dy / g[4]));
+      var outside = r <= 1 ? 0 : (r - 1) * Math.sqrt(g[3] * g[4]);
+      var e = GREEN_EFFECT[g[5]];
+      cooling -= e.a * Math.exp(-outside / e.l);
+      if (!nearest || outside < nearest.km) nearest = { name: g[0], km: outside, type: g[5] };
+    }
+    return { cooling: Math.max(cooling, -2.6), nearest: nearest };
+  }
+
+  // Îlot de chaleur nocturne brut (°C, échelle relative).
+  function uhiRawParts(lon, lat, arrs) {
+    var c = toKm(lon, lat);
+    var d = Math.sqrt(c[0] * c[0] + c[1] * c[1]);
+    var arr = arrondissementAt(lon, lat, arrs);
+    var g = greenEffect(lon, lat);
+    var seineKm = seineDistanceKm(lon, lat);
+    return {
+      base: 0.5,
+      core: 0.8 * Math.exp(-Math.pow(d / 3.0, 2)),
+      density: arr ? DENSITY[arr.n] || 0 : 0,
+      green: g.cooling,
+      seine: -0.35 * Math.exp(-seineKm / 0.15),
+      arr: arr,
+      nearestGreen: g.nearest,
+      seineKm: seineKm,
+      coreKm: d
+    };
+  }
+
+  function sumParts(p) {
+    return p.base + p.core + p.density + p.green + p.seine;
+  }
+
+  var UHI_SCALE = 0.8; // calage : centre de Paris ≈ +1,5 °C la nuit par rapport à Montsouris
+  var STATION_UHI = null;
+  // Écart nocturne du point (°C) par rapport à la station Montsouris, par nuit chaude.
+  function localHeat(lon, lat, arrs) {
+    if (STATION_UHI === null) STATION_UHI = sumParts(uhiRawParts(MONTSOURIS[0], MONTSOURIS[1], arrs));
+    var p = uhiRawParts(lon, lat, arrs);
+    p.delta = UHI_SCALE * (sumParts(p) - STATION_UHI);
+    return p;
+  }
+
+  function inParis(lon, lat, arrs) {
+    if (lon < BBOX.minLon || lon > BBOX.maxLon || lat < BBOX.minLat || lat > BBOX.maxLat) return false;
+    return !arrs || !!arrondissementAt(lon, lat, arrs);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Paramètres du logement
+  // ---------------------------------------------------------------------------
+  var DEFAULT_PROFILE = {
+    floor: "mid",        // low | mid | top | roof
+    orient: "unknown",   // N | E | S | W | unknown
+    windows: "double",   // single | double | recent | roof | unknown
+    shutters: "unknown", // ext | int | none | unknown
+    traversant: "unknown", // yes | no | unknown
+    nightOpen: "yes",    // yes | no
+    era: "unknown",      // pre1914 | 1914_1948 | 1949_1974 | 1975_2005 | post2005 | unknown
+    size: "s",           // xs (<15 m²) | s (15-40 m²) | m (>40 m²)
+    dpeEte: "unknown",   // bon | moyen | insuffisant | unknown
+    ac: "no"             // yes | no
+  };
+
+  // Poids de la moyenne glissante (jour J, J-1, J-2, J-3) selon l'inertie.
+  var MASS = {
+    heavy: [0.36, 0.28, 0.2, 0.16],
+    medium: [0.46, 0.27, 0.16, 0.11],
+    light: [0.58, 0.24, 0.11, 0.07]
+  };
+  // Part des écarts de température extérieure qui traverse l'enveloppe (amortissement).
+  var DAMPING = { heavy: 0.74, medium: 0.82, light: 0.9 };
+  var T_REF = 20; // °C : température autour de laquelle l'enveloppe amortit les écarts
+
+  // Chaque option renvoie ses effets : roof/facade = coefficient solaire (°C au plus fort),
+  // gain = apports internes (°C), vent = efficacité de la ventilation nocturne.
+  var FACTORS = {
+    floor: {
+      low: { label: "Rez-de-chaussée ou 1er étage", roof: 0, gain: -0.4 },
+      mid: { label: "Étage intermédiaire", roof: 0, gain: 0 },
+      top: { label: "Dernier étage", roof: 1.4, gain: 0.2 },
+      roof: { label: "Sous les toits", roof: 3.4, gain: 0.4, mass: "light" }
+    },
+    orient: {
+      N: { label: "Nord", facade: 0.3 },
+      E: { label: "Est", facade: 0.9 },
+      S: { label: "Sud", facade: 1.1 },
+      W: { label: "Ouest", facade: 1.6 },
+      unknown: { label: "Orientation inconnue", facade: 1.0, unknown: true }
+    },
+    windows: {
+      single: { label: "Simple vitrage", solar: 1.05, gain: 0.2 },
+      double: { label: "Double vitrage", solar: 1.0, gain: 0 },
+      recent: { label: "Double vitrage récent (contrôle solaire)", solar: 0.85, gain: 0 },
+      roof: { label: "Fenêtres de toit (Velux)", solar: 1.0, extraRoof: 1.2, gain: 0 },
+      unknown: { label: "Vitrage inconnu", solar: 1.0, gain: 0, unknown: true }
+    },
+    shutters: {
+      ext: { label: "Volets ou stores extérieurs", solar: 0.45 },
+      int: { label: "Rideaux ou stores intérieurs", solar: 0.8 },
+      none: { label: "Aucune protection solaire", solar: 1.0 },
+      unknown: { label: "Protections solaires inconnues", solar: 0.8, unknown: true }
+    },
+    traversant: {
+      yes: { label: "Traversant", vent: 0.36 },
+      no: { label: "Une seule façade", vent: 0.2 },
+      unknown: { label: "Traversant ou non : inconnu", vent: 0.26, unknown: true }
+    },
+    nightOpen: {
+      yes: { label: "Fenêtres ouvertes la nuit", vent: 1 },
+      no: { label: "Fenêtres fermées la nuit (bruit, sécurité)", vent: 0.3 }
+    },
+    era: {
+      pre1914: { label: "Avant 1914 (pierre, haussmannien)", mass: "heavy", gain: -0.3, solar: 1.0 },
+      "1914_1948": { label: "1914 à 1948 (brique)", mass: "medium", gain: -0.1, solar: 1.0 },
+      "1949_1974": { label: "1949 à 1974 (béton peu isolé)", mass: "medium", gain: 0.3, solar: 1.1 },
+      "1975_2005": { label: "1975 à 2005", mass: "medium", gain: 0.1, solar: 1.0 },
+      post2005: { label: "Après 2005", mass: "medium", gain: 0.2, solar: 0.95 },
+      unknown: { label: "Époque inconnue", mass: "medium", gain: 0, solar: 1.0, unknown: true }
+    },
+    size: {
+      xs: { label: "Moins de 15 m²", gain: 0.6 },
+      s: { label: "15 à 40 m²", gain: 0.2 },
+      m: { label: "Plus de 40 m²", gain: 0 }
+    },
+    dpeEte: {
+      bon: { label: "Confort d'été DPE : bon", solar: 0.8, gain: -0.3 },
+      moyen: { label: "Confort d'été DPE : moyen", solar: 1.0, gain: 0 },
+      insuffisant: { label: "Confort d'été DPE : insuffisant", solar: 1.15, gain: 0.3 },
+      unknown: { label: "Confort d'été DPE inconnu", solar: 1.0, gain: 0, unknown: true }
+    }
+  };
+
+  var BASE_GAIN = 1.0; // apports internes d'un logement occupé (personnes, appareils)
+
+  function params(profile) {
+    var p = Object.assign({}, DEFAULT_PROFILE, profile || {});
+    var fl = FACTORS.floor[p.floor], or = FACTORS.orient[p.orient], wi = FACTORS.windows[p.windows];
+    var sh = FACTORS.shutters[p.shutters], tr = FACTORS.traversant[p.traversant];
+    var no = FACTORS.nightOpen[p.nightOpen], er = FACTORS.era[p.era], sz = FACTORS.size[p.size];
+    var dp = FACTORS.dpeEte[p.dpeEte];
+
+    var roofExposure = fl.roof + (p.windows === "roof" ? wi.extraRoof : 0);
+    var solarMult = wi.solar * sh.solar * er.solar * dp.solar;
+    // Les combles subissent la toiture même volets fermés : la protection ne joue que sur les baies.
+    var roofMult = er.solar * dp.solar * (p.windows === "roof" ? sh.solar * 0.5 + 0.5 : 1);
+    var facade = or.facade * solarMult;
+    var roof = roofExposure * roofMult;
+    var gain = BASE_GAIN + fl.gain + wi.gain + er.gain + sz.gain + dp.gain;
+    var vent = tr.vent * no.vent;
+    if (p.floor === "roof" && p.windows === "roof") vent = Math.max(vent, 0.24 * no.vent); // tirage thermique des Velux
+    var mass = fl.mass || er.mass;
+    var unknowns = [or, wi, sh, tr, er, dp].filter(function (f) { return f.unknown; }).length;
+    return { profile: p, facade: facade, roof: roof, gain: gain, vent: vent, weights: MASS[mass], damping: DAMPING[mass], mass: mass, unknowns: unknowns };
+  }
+
+  // Ensoleillement relatif d'une journée, déduit de la température maximale.
+  function sunFactor(tx) {
+    return Math.max(0, Math.min(1.25, (tx - 18) / 12));
+  }
+
+  // Facteur d'intensité de l'îlot de chaleur : maximal les nuits chaudes et calmes.
+  function uhiNightFactor(tn) {
+    return Math.max(0.35, Math.min(1.15, (tn - 8) / 11));
+  }
+
+  var THRESHOLD = 26; // °C : seuil de sommeil difficile dans une chambre
+  var THRESHOLD_HARD = 28;
+
+  /*
+   * Simule tous les étés. delta = {tn, tx} décale le climat (projection 2050),
+   * shift ajoute des degrés constants (test de sensibilité).
+   */
+  function simulate(climate, heat, prm, opts) {
+    opts = opts || {};
+    var dTn = opts.tn || 0, dTx = opts.tx || 0, shift = opts.shift || 0, uhiScale = opts.uhiScale == null ? 1 : opts.uhiScale;
+    var threshold = opts.threshold || THRESHOLD;
+    var years = [];
+    for (var y = 0; y < climate.years.length; y++) {
+      var tnY = climate.tn[y], txY = climate.tx[y];
+      var tm = [], indoor = [], tnLocal = [];
+      var n26 = 0, n28 = 0, tropical = 0;
+      for (var d = 0; d < tnY.length; d++) {
+        var tn = tnY[d] + dTn, tx = txY[d] + dTx;
+        var u = heat * uhiScale * uhiNightFactor(tn);
+        var tnl = tn + u, txl = tx + 0.25 * heat * uhiScale;
+        tm.push((tnl + txl) / 2);
+        tnLocal.push(tnl);
+        var w = prm.weights, trm = 0, wsum = 0;
+        for (var k = 0; k < w.length; k++) {
+          var idx = Math.max(0, d - k);
+          trm += w[k] * tm[idx];
+          wsum += w[k];
+        }
+        trm /= wsum;
+        var free = T_REF + prm.damping * (trm - T_REF) + prm.gain + (prm.facade + prm.roof) * sunFactor(txl) + shift;
+        var tin = free > tnl ? free - prm.vent * (free - tnl) : free;
+        indoor.push(Math.round(tin * 10) / 10);
+        if (tin >= threshold) n26++;
+        if (tin >= THRESHOLD_HARD) n28++;
+        if (tnl >= 20) tropical++;
+      }
+      years.push({ year: climate.years[y], indoor: indoor, tnLocal: tnLocal, n26: n26, n28: n28, tropical: tropical });
+    }
+    var avg = function (key) {
+      return years.reduce(function (s, yy) { return s + yy[key]; }, 0) / years.length;
+    };
+    return { years: years, n26: avg("n26"), n28: avg("n28"), tropical: avg("tropical") };
+  }
+
+  // Score sur 10 : nuits étouffantes pondérées (une nuit ≥ 28 °C compte 1,5).
+  function scoreFrom(n26, n28) {
+    var weighted = n26 + 0.5 * n28;
+    var s = 1 + 9 * Math.sqrt(Math.min(weighted, 60) / 60);
+    return Math.max(1, Math.min(10, s));
+  }
+
+  var VERDICTS = [
+    { max: 2.5, label: "Frais", text: "Un logement qui encaisse bien l'été parisien." },
+    { max: 4.5, label: "Supportable", text: "Quelques nuits pénibles pendant les canicules." },
+    { max: 6.5, label: "Chaud", text: "Plusieurs semaines de nuits difficiles chaque été." },
+    { max: 8.5, label: "Étuve", text: "L'été se vit fenêtres grandes ouvertes et ventilateur à fond." },
+    { max: 11, label: "Fournaise", text: "Dormir ici en juillet relève de l'exploit." }
+  ];
+
+  function verdict(score) {
+    for (var i = 0; i < VERDICTS.length; i++) if (score < VERDICTS[i].max) return VERDICTS[i];
+    return VERDICTS[VERDICTS.length - 1];
+  }
+
+  // Projection 2050 : écarts estivaux par rapport à la période 2017-2026, d'après la
+  // trajectoire de réchauffement de référence (TRACC : France +2,7 °C en 2050 contre
+  // environ +1,8 °C au début des années 2020), avec un été qui se réchauffe ~1,3 fois
+  // plus vite que l'année. Fourchette basse et haute pour l'incertitude des modèles.
+  var SCENARIOS_2050 = {
+    low: { tn: 0.6, tx: 0.7, label: "fourchette basse" },
+    central: { tn: 1.2, tx: 1.4, label: "trajectoire de référence (TRACC)" },
+    high: { tn: 2.0, tx: 2.4, label: "fourchette haute" }
+  };
+
+  // Décomposition d'une soirée chaude typique (jours où Montsouris dépasse 28 °C) :
+  // d'où vient chaque degré de la température du logement au coucher.
+  function hotEvening(climate, heat, prm) {
+    var acc = { outdoor: 0, quartier: 0, roof: 0, facade: 0, gain: 0, vent: 0, indoor: 0, nightOut: 0 }, n = 0;
+    var w = prm.weights;
+    for (var y = 0; y < climate.years.length; y++) {
+      var tmS = [], tmL = [];
+      for (var d = 0; d < climate.tn[y].length; d++) {
+        var tn = climate.tn[y][d], tx = climate.tx[y][d];
+        var tnl = tn + heat * uhiNightFactor(tn), txl = tx + 0.25 * heat;
+        tmS.push((tn + tx) / 2);
+        tmL.push((tnl + txl) / 2);
+        if (tx < 28) continue;
+        var rS = 0, rL = 0, ws = 0;
+        for (var k = 0; k < w.length; k++) {
+          var i = Math.max(0, d - k);
+          rS += w[k] * tmS[i]; rL += w[k] * tmL[i]; ws += w[k];
+        }
+        rS /= ws; rL /= ws;
+        var outdoor = T_REF + prm.damping * (rS - T_REF);
+        var quartier = prm.damping * (rL - rS);
+        var sun = sunFactor(txl);
+        var free = outdoor + quartier + prm.gain + (prm.roof + prm.facade) * sun;
+        var vent = free > tnl ? -prm.vent * (free - tnl) : 0;
+        acc.outdoor += outdoor; acc.quartier += quartier; acc.roof += prm.roof * sun;
+        acc.facade += prm.facade * sun; acc.gain += prm.gain; acc.vent += vent;
+        acc.indoor += free + vent; acc.nightOut += tnl; n++;
+      }
+    }
+    Object.keys(acc).forEach(function (k) { acc[k] /= n || 1; });
+    acc.days = n / climate.years.length;
+    return acc;
+  }
+
+  // Niveau de confiance : localisation, réponses connues, nature du modèle.
+  function confidence(opts, prm) {
+    var points = 0, reasons = [];
+    if (opts.precision === "address") { points += 3; reasons.push({ ok: true, text: "Adresse localisée précisément" }); }
+    else if (opts.precision === "map") { points += 2; reasons.push({ ok: true, text: "Position placée sur la carte" }); }
+    else { points += 0; reasons.push({ ok: false, text: "Seul l'arrondissement est connu" }); }
+    var known = 6 - prm.unknowns;
+    points += known * 0.5;
+    reasons.push({ ok: prm.unknowns <= 1, text: known + (known > 1 ? " caractéristiques" : " caractéristique") + " du logement sur 6 " + (known > 1 ? "renseignées" : "renseignée") });
+    if (prm.profile.dpeEte !== "unknown") { points += 1; reasons.push({ ok: true, text: "Confort d'été du DPE pris en compte" }); }
+    reasons.push({ ok: true, text: "10 étés de relevés réels à Paris-Montsouris" });
+    reasons.push({ ok: false, text: "Carte des îlots de chaleur estimée à l'échelle du quartier, pas de l'immeuble" });
+    reasons.push({ ok: false, text: "Modèle simplifié, non calibré sur des mesures dans ce logement" });
+    var level = points >= 6.5 ? "bonne" : points >= 4.5 ? "moyenne" : "faible";
+    return { level: level, label: level === "bonne" ? "Bonne" : level === "moyenne" ? "Moyenne" : "Faible", points: points, reasons: reasons };
+  }
+
+  // Analyse complète d'un logement.
+  function analyze(climate, location, profile, arrs) {
+    var heatInfo = localHeat(location.lon, location.lat, arrs);
+    var heat = heatInfo.delta;
+    var prm = params(profile);
+    var conf = confidence(location, prm);
+    var spread = conf.level === "bonne" ? 0.8 : conf.level === "moyenne" ? 1.2 : 1.6;
+
+    var now = simulate(climate, heat, prm);
+    var lo = simulate(climate, heat, prm, { shift: -spread, uhiScale: 0.75 });
+    var hi = simulate(climate, heat, prm, { shift: spread, uhiScale: 1.25 });
+    var s50 = simulate(climate, heat, prm, SCENARIOS_2050.central);
+    var s50lo = simulate(climate, heat, prm, SCENARIOS_2050.low);
+    var s50hi = simulate(climate, heat, prm, SCENARIOS_2050.high);
+
+    var acFactor = prm.profile.ac === "yes" ? 0.15 : 1;
+    var effective = function (sim) { return { n26: sim.n26 * acFactor, n28: sim.n28 * acFactor }; };
+    var e = effective(now), e50 = effective(s50);
+    var score = scoreFrom(e.n26, e.n28);
+    var score2050 = scoreFrom(e50.n26, e50.n28);
+
+    return {
+      heat: heatInfo,
+      params: prm,
+      confidence: conf,
+      now: now,
+      range: [lo.n26 * acFactor, hi.n26 * acFactor],
+      passive: now.n26,
+      ac: prm.profile.ac === "yes",
+      n26: e.n26,
+      n28: e.n28,
+      score: score,
+      scoreRounded: Math.round(score),
+      verdict: verdict(score),
+      y2050: {
+        sim: s50,
+        n26: e50.n26,
+        n28: e50.n28,
+        range: [s50lo.n26 * acFactor, s50hi.n26 * acFactor],
+        score: score2050,
+        scoreRounded: Math.round(score2050),
+        tropical: s50.tropical
+      },
+      evening: hotEvening(climate, heat, prm)
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Conseils : chaque piste est simulée pour chiffrer les nuits gagnées.
+  // ---------------------------------------------------------------------------
+  var ADVICE = [
+    {
+      id: "volets", when: function (p) { return p.shutters !== "ext"; },
+      change: { shutters: "ext" }, who: "Propriétaire ou toi",
+      title: "Bloquer le soleil avant la vitre",
+      text: "Volets fermés en journée, store extérieur ou toile tendue côté extérieur : la chaleur est arrêtée avant d'entrer. Un store intérieur en garde la moitié dedans."
+    },
+    {
+      id: "velux", when: function (p) { return p.windows === "roof" && p.shutters !== "ext"; },
+      change: { shutters: "ext" }, who: "Propriétaire ou toi",
+      title: "Équiper les Velux d'un store pare-soleil extérieur",
+      text: "Les fenêtres de toit reçoivent le soleil de plein fouet. Un store extérieur adapté au modèle de fenêtre se pose sans travaux."
+    },
+    {
+      id: "courant", when: function (p) { return p.traversant !== "yes" && p.nightOpen === "yes"; },
+      change: { traversant: "yes" }, who: "Toi",
+      title: "Créer un courant d'air la nuit",
+      text: "Ouvre en grand dès que l'air dehors est plus frais que dedans, portes intérieures ouvertes. Sans deuxième façade, un ventilateur posé dans la fenêtre et tourné vers l'extérieur aspire l'air chaud."
+    },
+    {
+      id: "bruit", when: function (p) { return p.nightOpen === "no"; },
+      change: { nightOpen: "yes" }, who: "Toi",
+      title: "Rendre possible l'aération nocturne",
+      text: "Moustiquaire, bouchons d'oreille, entrebâilleur sécurisé ou aération côté cour : tout ce qui permet de garder une fenêtre ouverte la nuit change l'été."
+    },
+    {
+      id: "apports", when: function () { return true; },
+      change: { _gain: -0.4 }, who: "Toi",
+      title: "Réduire la chaleur produite dedans",
+      text: "Éteindre les appareils en veille, passer aux ampoules LED, cuisiner tôt le matin ou à froid, étendre le linge dehors : chaque appareil est un petit radiateur."
+    },
+    {
+      id: "vegetal", when: function (p) { return p.floor !== "roof"; },
+      change: { _solar: 0.88 }, who: "Toi ou la copropriété",
+      title: "Végétaliser la façade ou le balcon",
+      text: "Jardinières, plantes grimpantes sur treillage, arbres dans la cour : l'ombre et l'évaporation rafraîchissent l'air qui entre."
+    },
+    {
+      id: "toiture", when: function (p) { return p.floor === "roof" || p.floor === "top"; },
+      change: { _roof: 0.6 }, who: "Copropriété",
+      title: "Isoler la toiture ou la peindre en clair",
+      text: "Isolant sous les combles ou peinture réflective sur le zinc : c'est une décision de copropriété, mais c'est le levier le plus puissant pour un dernier étage."
+    }
+  ];
+
+  function applyChange(prm, change) {
+    var next = Object.assign({}, prm);
+    if (change._gain) next.gain = prm.gain + change._gain;
+    if (change._solar) next.facade = prm.facade * change._solar;
+    if (change._roof) next.roof = prm.roof * change._roof;
+    return next;
+  }
+
+  function advice(climate, location, profile, arrs, result) {
+    var p = result.params.profile;
+    var heat = result.heat.delta;
+    var list = [];
+    ADVICE.forEach(function (a) {
+      if (!a.when(p)) return;
+      var changed = Object.keys(a.change).filter(function (k) { return k[0] !== "_"; });
+      var prm = changed.length ? params(Object.assign({}, p, a.change)) : result.params;
+      prm = applyChange(prm, a.change);
+      var sim = simulate(climate, heat, prm);
+      var saved = result.passive - sim.n26;
+      list.push({ id: a.id, title: a.title, text: a.text, who: a.who, saved: Math.max(0, saved) });
+    });
+    // Le ventilateur ne refroidit pas l'air mais déplace le seuil de confort d'environ 2 °C.
+    var fan = simulate(climate, heat, result.params, { threshold: THRESHOLD + 2 });
+    list.push({
+      id: "ventilateur", who: "Toi", saved: Math.max(0, result.passive - fan.n26), felt: true,
+      title: "Un ventilateur dirigé vers le lit",
+      text: "L'air ne baisse pas d'un degré, mais le corps ressent environ 2 °C de moins. C'est le meilleur rapport efficacité-prix pour dormir."
+    });
+    list.sort(function (a, b) { return b.saved - a.saved; });
+    if (list[0] && list[0].id === "velux") list = list.filter(function (x) { return x.id !== "volets"; });
+    else list = list.filter(function (x) { return x.id !== "velux"; });
+    return list;
+  }
+
+  var api = {
+    MONTSOURIS: MONTSOURIS, BBOX: BBOX, GREEN: GREEN, SEINE: SEINE, DENSITY: DENSITY,
+    FACTORS: FACTORS, DEFAULT_PROFILE: DEFAULT_PROFILE, SCENARIOS_2050: SCENARIOS_2050,
+    THRESHOLD: THRESHOLD, THRESHOLD_HARD: THRESHOLD_HARD, KM_LON: KM_LON, KM_LAT: KM_LAT,
+    arrondissementAt: arrondissementAt, localHeat: localHeat, inParis: inParis,
+    params: params, simulate: simulate, scoreFrom: scoreFrom, verdict: verdict,
+    analyze: analyze, advice: advice, confidence: confidence, hotEvening: hotEvening
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.FournaiseModel = api;
+})(this);
+
+</script>
+<script>
+/* Fournaise — interface. Dépend de js/data-paris.js et js/model.js. */
+(function () {
+  "use strict";
+
+  var D = window.FOURNAISE_DATA;
+  var M = window.FournaiseModel;
+  var ARRS = D.arrondissements;
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------------------------------------------------------------------------
+  // Questions du formulaire
+  // ---------------------------------------------------------------------------
+  var Q_MAIN = [
+    { key: "floor", label: "Étage", opts: [["low", "RDC ou 1er"], ["mid", "Intermédiaire"], ["top", "Dernier étage"], ["roof", "Sous les toits"]] },
+    { key: "orient", label: "Orientation des fenêtres principales", hint: "côté chambre ou séjour", opts: [["N", "Nord"], ["E", "Est"], ["S", "Sud"], ["W", "Ouest"], ["unknown", "Je ne sais pas"]] },
+    { key: "windows", label: "Fenêtres", opts: [["single", "Simple vitrage"], ["double", "Double vitrage"], ["recent", "Double récent"], ["roof", "Velux"], ["unknown", "Je ne sais pas"]] },
+    { key: "shutters", label: "Protection contre le soleil", opts: [["ext", "Volets ou stores extérieurs"], ["int", "Rideaux intérieurs"], ["none", "Rien"], ["unknown", "Je ne sais pas"]] },
+    { key: "ac", label: "Climatisation", opts: [["no", "Non"], ["yes", "Oui"]] }
+  ];
+  var Q_MORE = [
+    { key: "traversant", label: "Fenêtres sur deux façades opposées", hint: "appartement traversant", opts: [["yes", "Oui"], ["no", "Non"], ["unknown", "Je ne sais pas"]] },
+    { key: "nightOpen", label: "Fenêtres ouvertes la nuit", opts: [["yes", "Possible"], ["no", "Non, bruit ou sécurité"]] },
+    { key: "era", label: "Construction de l'immeuble", opts: [["pre1914", "Avant 1914"], ["1914_1948", "1914-1948"], ["1949_1974", "1949-1974"], ["1975_2005", "1975-2005"], ["post2005", "Après 2005"], ["unknown", "Je ne sais pas"]] },
+    { key: "size", label: "Surface", opts: [["xs", "Moins de 15 m²"], ["s", "15 à 40 m²"], ["m", "Plus de 40 m²"]] },
+    { key: "dpeEte", label: "Confort d'été du DPE", hint: "case présente sur les DPE depuis 2021", opts: [["bon", "Bon"], ["moyen", "Moyen"], ["insuffisant", "Insuffisant"], ["unknown", "Je ne sais pas"]] }
+  ];
+
+  var EXAMPLES = [
+    {
+      id: "bonne", label: "Chambre de bonne, 9e",
+      location: { lon: 2.3397, lat: 48.8795, label: "Rue des Martyrs, Paris 9e", precision: "address" },
+      profile: { floor: "roof", orient: "W", windows: "roof", shutters: "none", ac: "no", traversant: "no", nightOpen: "yes", era: "pre1914", size: "xs", dpeEte: "unknown" }
+    },
+    {
+      id: "haussmann", label: "Haussmannien, 15e",
+      location: { lon: 2.295, lat: 48.8395, label: "Rue de la Convention, Paris 15e", precision: "address" },
+      profile: { floor: "mid", orient: "N", windows: "double", shutters: "ext", ac: "no", traversant: "yes", nightOpen: "yes", era: "pre1914", size: "m", dpeEte: "moyen" }
+    },
+    {
+      id: "seventies", label: "Studio des années 70, 13e",
+      location: { lon: 2.3577, lat: 48.8255, label: "Avenue d'Italie, Paris 13e", precision: "address" },
+      profile: { floor: "top", orient: "S", windows: "double", shutters: "int", ac: "no", traversant: "no", nightOpen: "no", era: "1949_1974", size: "s", dpeEte: "insuffisant" }
+    }
+  ];
+
+  var state = {
+    location: null,
+    profile: Object.assign({}, M.DEFAULT_PROFILE),
+    example: null,
+    view: "now",
+    result: null,
+    networkDown: false
+  };
+
+  // ---------------------------------------------------------------------------
+  // Couleurs (lues dans les jetons CSS pour suivre le thème)
+  // ---------------------------------------------------------------------------
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+  function hexToRgb(h) {
+    h = h.replace("#", "");
+    if (h.length === 3) h = h.split("").map(function (c) { return c + c; }).join("");
+    var n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  var palette = null;
+  function readPalette() {
+    palette = ["--h0", "--h1", "--h2", "--h3", "--h4", "--h5", "--h6"].map(function (v) { return hexToRgb(cssVar(v) || "#888888"); });
+  }
+  function ramp(stops, value) {
+    if (value <= stops[0][0]) return palette[stops[0][1]];
+    for (var i = 1; i < stops.length; i++) {
+      if (value <= stops[i][0]) {
+        var a = stops[i - 1], b = stops[i], t = (value - a[0]) / (b[0] - a[0]);
+        var ca = palette[a[1]], cb = palette[b[1]];
+        return [0, 1, 2].map(function (k) { return Math.round(ca[k] + (cb[k] - ca[k]) * t); });
+      }
+    }
+    return palette[stops[stops.length - 1][1]];
+  }
+  var TEMP_STOPS = [[19, 0], [22.5, 1], [25, 2], [26.5, 3], [28.5, 4], [31.5, 5], [35, 6]];
+  var SCORE_STOPS = [[1, 0], [3, 1], [4.5, 2], [6, 3], [7.5, 4], [9, 5], [10, 6]];
+  var MAP_STOPS = [[-1.1, 0], [-0.4, 1], [0.6, 2], [1.3, 3], [1.9, 4]];
+  function rgb(c, a) { return a == null ? "rgb(" + c.join(",") + ")" : "rgba(" + c.join(",") + "," + a + ")"; }
+  function tempColor(t) { return rgb(ramp(TEMP_STOPS, t)); }
+  function scoreColor(s) { return rgb(ramp(SCORE_STOPS, s)); }
+
+  // ---------------------------------------------------------------------------
+  // Formatage
+  // ---------------------------------------------------------------------------
+  function fr(n, digits) {
+    return n.toLocaleString("fr-FR", { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 });
+  }
+  function nights(n) {
+    if (n < 0.5) return "0";
+    if (n < 1) return "< 1";
+    return fr(Math.round(n));
+  }
+  function plural(n, one, many) { return Math.round(n) >= 2 ? many : one; }
+  var MONTHS = ["juin", "juillet", "août", "septembre"];
+  var MONTH_START = [0, 30, 61, 92];
+  function dayLabel(d) {
+    for (var m = 3; m >= 0; m--) if (d >= MONTH_START[m]) return (d - MONTH_START[m] + 1) + (d - MONTH_START[m] === 0 ? "er" : "") + " " + MONTHS[m];
+    return "";
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Formulaire
+  // ---------------------------------------------------------------------------
+  function renderQuestions(container, list) {
+    container.innerHTML = list.map(function (q) {
+      var name = "f-" + q.key;
+      var opts = q.opts.map(function (o) {
+        var id = name + "-" + o[0];
+        return '<input type="radio" name="' + name + '" id="' + id + '" value="' + o[0] + '">' +
+          '<label for="' + id + '"' + (o[0] === "unknown" ? ' class="unknown"' : "") + ">" + escapeHtml(o[1]) + "</label>";
+      }).join("");
+      return '<div class="q" role="radiogroup" aria-labelledby="' + name + '-l">' +
+        '<span class="q-label" id="' + name + '-l">' + escapeHtml(q.label) + (q.hint ? "<small>" + escapeHtml(q.hint) + "</small>" : "") + "</span>" +
+        '<div class="seg">' + opts + "</div></div>";
+    }).join("");
+  }
+
+  function syncForm() {
+    Q_MAIN.concat(Q_MORE).forEach(function (q) {
+      var el = document.getElementById("f-" + q.key + "-" + state.profile[q.key]);
+      if (el) el.checked = true;
+    });
+  }
+
+  function renderExamples() {
+    var box = $("examples");
+    EXAMPLES.forEach(function (ex) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = ex.label;
+      b.dataset.example = ex.id;
+      b.addEventListener("click", function () { loadExample(ex.id); });
+      box.appendChild(b);
+    });
+  }
+
+  function loadExample(id) {
+    var ex = EXAMPLES.filter(function (e) { return e.id === id; })[0];
+    state.example = ex.id;
+    state.profile = Object.assign({}, M.DEFAULT_PROFILE, ex.profile);
+    state.location = Object.assign({}, ex.location);
+    $("addr-input").value = "";
+    syncForm();
+    update();
+  }
+
+  function markEdited() {
+    state.example = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Carte de Paris
+  // ---------------------------------------------------------------------------
+  var MAPB = { minLon: 2.221, maxLon: 2.473, minLat: 48.813, maxLat: 48.905 };
+  var MAP_W = 600;
+  var MAP_K = MAP_W / ((MAPB.maxLon - MAPB.minLon) * M.KM_LON);
+  var MAP_H = Math.round((MAPB.maxLat - MAPB.minLat) * M.KM_LAT * MAP_K);
+  function project(lon, lat) {
+    return [(lon - MAPB.minLon) * M.KM_LON * MAP_K, (MAPB.maxLat - lat) * M.KM_LAT * MAP_K];
+  }
+  function unproject(x, y) {
+    return [MAPB.minLon + x / (M.KM_LON * MAP_K), MAPB.maxLat - y / (M.KM_LAT * MAP_K)];
+  }
+  function ringPath(ring) {
+    return ring.map(function (c, i) { var p = project(c[0], c[1]); return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join("") + "Z";
+  }
+  function ringCentroid(ring) {
+    var a = 0, cx = 0, cy = 0;
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      var f = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+      a += f; cx += (ring[j][0] + ring[i][0]) * f; cy += (ring[j][1] + ring[i][1]) * f;
+    }
+    a *= 0.5;
+    return [cx / (6 * a), cy / (6 * a)];
+  }
+  function mainRing(arr) {
+    return arr.rings.reduce(function (best, r) { return r.length > best.length ? r : best; }, arr.rings[0]);
+  }
+  // Points d'étiquette ajustés à la main là où le centroïde tombe mal.
+  var LABEL_NUDGE = { 16: [2.268, 48.858], 12: [2.398, 48.838] };
+  var NS = "http://www.w3.org/2000/svg";
+
+  function heatRaster() {
+    var RW = 210, RH = Math.round((RW * MAP_H) / MAP_W);
+    var c = document.createElement("canvas");
+    c.width = RW; c.height = RH;
+    var ctx = c.getContext("2d");
+    var img = ctx.createImageData(RW, RH);
+    for (var y = 0; y < RH; y++) {
+      for (var x = 0; x < RW; x++) {
+        var ll = unproject(((x + 0.5) / RW) * MAP_W, ((y + 0.5) / RH) * MAP_H);
+        if (!M.inParis(ll[0], ll[1], ARRS)) continue;
+        var col = ramp(MAP_STOPS, M.localHeat(ll[0], ll[1], ARRS).delta);
+        var o = (y * RW + x) * 4;
+        img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 200;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL();
+  }
+
+  function renderMap() {
+    var svg = $("map");
+    svg.setAttribute("viewBox", "0 0 " + MAP_W + " " + MAP_H);
+    var allPaths = ARRS.map(function (a) { return a.rings.map(ringPath).join(""); }).join("");
+    var labels = ARRS.map(function (a) {
+      var c = LABEL_NUDGE[a.n] || ringCentroid(mainRing(a));
+      var p = project(c[0], c[1]);
+      return '<text class="arr-label" x="' + p[0].toFixed(1) + '" y="' + (p[1] + 4).toFixed(1) + '" text-anchor="middle">' + a.n + "</text>";
+    }).join("");
+    var seine = M.SEINE.map(function (c, i) { var p = project(c[0], c[1]); return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join("");
+    svg.innerHTML =
+      '<defs><clipPath id="paris-clip"><path d="' + allPaths + '"/></clipPath></defs>' +
+      '<image id="map-heat" x="0" y="0" width="' + MAP_W + '" height="' + MAP_H + '" preserveAspectRatio="none" clip-path="url(#paris-clip)" href="' + heatRaster() + '"/>' +
+      '<path d="' + seine + '" fill="none" stroke="var(--seine)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" clip-path="url(#paris-clip)"/>' +
+      ARRS.map(function (a) { return '<path d="' + a.rings.map(ringPath).join("") + '" fill="none" stroke="var(--map-line)" stroke-width="0.9"/>'; }).join("") +
+      labels +
+      '<g id="map-pin" visibility="hidden"><circle class="pin-halo" r="15"/><circle class="pin-dot" r="6"/></g>';
+    svg.addEventListener("click", function (ev) {
+      var rect = svg.getBoundingClientRect();
+      var x = ((ev.clientX - rect.left) / rect.width) * MAP_W, y = ((ev.clientY - rect.top) / rect.height) * MAP_H;
+      var ll = unproject(x, y);
+      var arr = M.arrondissementAt(ll[0], ll[1], ARRS);
+      if (!arr) { note("Ce point est hors de Paris. Fournaise ne couvre que Paris pour l'instant.", true); return; }
+      markEdited();
+      setLocation({ lon: ll[0], lat: ll[1], precision: "map", label: "Point placé sur la carte, Paris " + arrName(arr.n) });
+      note("Position enregistrée. Tu peux la déplacer en cliquant ailleurs.");
+    });
+  }
+
+  function refreshMapHeat() {
+    var img = document.getElementById("map-heat");
+    if (img) img.setAttribute("href", heatRaster());
+  }
+
+  function placePin() {
+    var pin = $("map-pin");
+    if (!pin || !state.location) return;
+    var p = project(state.location.lon, state.location.lat);
+    pin.setAttribute("transform", "translate(" + p[0].toFixed(1) + " " + p[1].toFixed(1) + ")");
+    pin.setAttribute("visibility", "visible");
+  }
+
+  function arrName(n) { return n === 1 ? "1er" : n + "e"; }
+
+  function renderArrSelect() {
+    var sel = $("arr-select");
+    sel.innerHTML = '<option value="">Ou choisis l\'arrondissement</option>' + ARRS.map(function (a) {
+      return '<option value="' + a.n + '">Paris ' + arrName(a.n) + " · " + escapeHtml(a.name) + "</option>";
+    }).join("");
+    sel.addEventListener("change", function () {
+      if (!sel.value) return;
+      markEdited();
+      setArrondissement(parseInt(sel.value, 10));
+      sel.value = "";
+    });
+  }
+
+  function setArrondissement(n) {
+    var arr = ARRS.filter(function (a) { return a.n === n; })[0];
+    var c = LABEL_NUDGE[n] || ringCentroid(mainRing(arr));
+    setLocation({ lon: c[0], lat: c[1], precision: "arr", label: "Centre du " + arrName(n) + " arrondissement" });
+    note("Position approximative au centre de l'arrondissement. Clique sur la carte pour la préciser.");
+  }
+
+  function setLocation(loc) {
+    state.location = loc;
+    update();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Recherche d'adresse (Base Adresse Nationale)
+  // ---------------------------------------------------------------------------
+  var GEOCODERS = [
+    function (q) { return "https://data.geopf.fr/geocodage/search?q=" + encodeURIComponent(q) + "&limit=6&lat=48.8566&lon=2.3522"; },
+    function (q) { return "https://api-adresse.data.gouv.fr/search/?q=" + encodeURIComponent(q) + "&limit=6&lat=48.8566&lon=2.3522"; }
+  ];
+
+  function fetchJson(url, ms) {
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, ms);
+    return fetch(url, ctrl ? { signal: ctrl.signal } : {}).then(function (r) {
+      clearTimeout(timer);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }, function (e) { clearTimeout(timer); throw e; });
+  }
+
+  function geocode(q) {
+    var i = 0;
+    function next() {
+      if (i >= GEOCODERS.length) return Promise.reject(new Error("offline"));
+      var url = GEOCODERS[i++](q);
+      return fetchJson(url, 5000).then(function (json) {
+        return (json.features || []).map(function (f) {
+          var p = f.properties || {};
+          return {
+            label: p.label || q, lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1],
+            postcode: p.postcode || "", citycode: p.citycode || "", type: p.type || ""
+          };
+        });
+      }).catch(next);
+    }
+    return next();
+  }
+
+  function parisOnly(results) {
+    return results.filter(function (r) { return M.inParis(r.lon, r.lat, ARRS); });
+  }
+
+  // Sans réseau : code postal 750xx ou « 11e », « Paris 11 ».
+  function parseArrondissement(text) {
+    var m = text.match(/\b75(?:0(\d\d)|116)\b/);
+    if (m) return m[1] ? parseInt(m[1], 10) : 16;
+    m = text.match(/\b(\d{1,2})\s*(?:e|è|ème|eme|er)\b/i) || text.match(/paris\s+(\d{1,2})\b/i);
+    if (m) { var n = parseInt(m[1], 10); if (n >= 1 && n <= 20) return n; }
+    return null;
+  }
+
+  function note(text, warn) {
+    var el = $("addr-note");
+    el.textContent = text;
+    el.classList.toggle("warn", !!warn);
+  }
+
+  var suggestions = [], activeIdx = -1, debounce = null, lastQuery = "";
+
+  function showSuggestions(list) {
+    suggestions = list;
+    activeIdx = -1;
+    var ul = $("addr-suggest");
+    if (!list.length) { ul.hidden = true; ul.innerHTML = ""; return; }
+    ul.innerHTML = list.map(function (r, i) {
+      return '<li role="option" id="sug-' + i + '" data-i="' + i + '">' + escapeHtml(r.label) + "</li>";
+    }).join("");
+    ul.hidden = false;
+  }
+
+  function chooseSuggestion(r) {
+    showSuggestions([]);
+    $("addr-input").value = r.label;
+    markEdited();
+    setLocation({ lon: r.lon, lat: r.lat, precision: r.type === "housenumber" ? "address" : "map", label: r.label });
+    note(r.type === "housenumber" ? "Adresse localisée." : "Rue localisée. Ajoute le numéro pour plus de précision.");
+  }
+
+  function offlineFallback(text) {
+    var n = parseArrondissement(text);
+    if (n) {
+      markEdited();
+      setArrondissement(n);
+      note("Recherche d'adresse indisponible ici : position placée au centre du " + arrName(n) + ". Clique sur la carte pour la préciser.", true);
+    } else {
+      note("La recherche d'adresse ne répond pas depuis cette page. Clique sur la carte, choisis l'arrondissement, ou tape un code postal (ex. 75011).", true);
+    }
+  }
+
+  function wireAddress() {
+    var input = $("addr-input"), ul = $("addr-suggest");
+    input.addEventListener("input", function () {
+      var q = input.value.trim();
+      clearTimeout(debounce);
+      if (q.length < 5 || state.networkDown) { showSuggestions([]); return; }
+      debounce = setTimeout(function () {
+        lastQuery = q;
+        geocode(q + (/paris|750\d\d/i.test(q) ? "" : " Paris")).then(function (res) {
+          if (lastQuery !== q) return;
+          showSuggestions(parisOnly(res).slice(0, 5));
+        }).catch(function () { state.networkDown = true; showSuggestions([]); });
+      }, 280);
+    });
+    input.addEventListener("keydown", function (e) {
+      if (ul.hidden) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        activeIdx = (activeIdx + (e.key === "ArrowDown" ? 1 : -1) + suggestions.length) % suggestions.length;
+        Array.prototype.forEach.call(ul.children, function (li, i) { li.setAttribute("aria-selected", i === activeIdx ? "true" : "false"); });
+        input.setAttribute("aria-activedescendant", "sug-" + activeIdx);
+      } else if (e.key === "Escape") {
+        showSuggestions([]);
+      }
+    });
+    ul.addEventListener("mousedown", function (e) {
+      var li = e.target.closest("li");
+      if (li) { e.preventDefault(); chooseSuggestion(suggestions[+li.dataset.i]); }
+    });
+    input.addEventListener("blur", function () { setTimeout(function () { showSuggestions([]); }, 150); });
+    $("form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      if (!ul.hidden && suggestions.length) { chooseSuggestion(suggestions[Math.max(0, activeIdx)]); return; }
+      var q = input.value.trim();
+      if (!q) { note("Tape une adresse, ou clique sur la carte.", true); return; }
+      if (state.networkDown) { offlineFallback(q); return; }
+      note("Recherche…");
+      geocode(q + (/paris|750\d\d/i.test(q) ? "" : " Paris")).then(function (res) {
+        var paris = parisOnly(res);
+        if (paris.length) chooseSuggestion(paris[0]);
+        else if (res.length) note("Cette adresse est hors de Paris. Fournaise ne couvre que Paris pour l'instant ; Lyon, Marseille et Toulouse sont les prochaines villes.", true);
+        else note("Adresse introuvable. Vérifie l'orthographe ou clique sur la carte.", true);
+      }).catch(function () { state.networkDown = true; offlineFallback(q); });
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rendu des résultats
+  // ---------------------------------------------------------------------------
+  function heatSentence(delta) {
+    var a = Math.abs(delta);
+    if (a < 0.25) return "nuits proches de celles du parc Montsouris";
+    return "nuits environ " + fr(a, 1) + " °C plus " + (delta > 0 ? "chaudes" : "fraîches") + " qu'au parc Montsouris";
+  }
+
+  function renderVerdict(r) {
+    var color = scoreColor(Math.min(r.score, 9.2));
+    var scoreEl = $("v-score");
+    scoreEl.style.setProperty("--score-color", color);
+    scoreEl.innerHTML = r.scoreRounded + "<small>/10</small>";
+    $("v-mark").style.left = ((r.score - 1) / 9) * 100 + "%";
+    $("v-name").textContent = r.verdict.label;
+    $("v-text").textContent = r.ac
+      ? "Avec la clim, l'été reste vivable. Sans elle, ce logement serait noté " + Math.round(M.scoreFrom(r.passive, r.now.n28)) + "/10."
+      : r.verdict.text;
+    $("v-example").hidden = !state.example;
+    $("s-n26").innerHTML = nights(r.n26) + '<span class="u">' + plural(r.n26, "nuit", "nuits") + "</span>";
+    $("s-range").textContent = r.ac
+      ? "clim allumée les autres nuits (" + nights(r.passive) + " sans clim)"
+      : "fourchette probable : " + nights(r.range[0]) + " à " + nights(r.range[1]);
+    $("s-n28").innerHTML = nights(r.n28) + '<span class="u">' + plural(r.n28, "nuit", "nuits") + "</span>";
+    $("s-2050").innerHTML = nights(r.y2050.n26) + '<span class="u">' + plural(r.y2050.n26, "nuit", "nuits") + "</span>";
+    var diff = Math.round(r.y2050.n26) - Math.round(r.n26);
+    $("s-2050s").textContent = "score " + r.y2050.scoreRounded + "/10" + (diff > 0 ? " · " + diff + " de plus" : "");
+    $("s-trop").innerHTML = nights(r.now.tropical) + '<span class="u">par été</span>';
+
+    var arr = r.heat.arr ? "Paris " + arrName(r.heat.arr.n) : "Paris";
+    $("v-place").textContent = (state.location.label || arr) + " · " + heatSentence(r.heat.delta) + ".";
+
+    var conf = r.confidence;
+    var chip = $("v-conf");
+    chip.className = "chip conf-" + conf.level;
+    $("v-conf-text").textContent = "Confiance " + conf.label.toLowerCase();
+    $("v-conf-list").innerHTML = conf.reasons.map(function (x) {
+      return '<li class="' + (x.ok ? "ok" : "ko") + '">' + escapeHtml(x.text) + "</li>";
+    }).join("");
+  }
+
+  // Rayures des étés -----------------------------------------------------------
+  var stripesGeom = null;
+  function renderStripes(r) {
+    var canvas = $("stripes"), wrap = $("stripes-wrap");
+    var sim = state.view === "now" ? r.now : r.y2050.sim;
+    var W = Math.max(300, wrap.clientWidth);
+    var narrow = W < 520;
+    var labelW = narrow ? 36 : 46, countW = narrow ? 30 : 56, top = 24, rowH = 20, gap = 4;
+    var rows = sim.years.length;
+    var H = top + rows * (rowH + gap);
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.height = H + "px";
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    var ink = cssVar("--ink"), muted = cssVar("--muted"), line = cssVar("--line");
+    var cellW = (W - labelW - countW) / 122;
+    ctx.font = "500 11px " + cssVar("--font-data");
+    ctx.fillStyle = muted;
+    ctx.textBaseline = "middle";
+    MONTH_START.forEach(function (d, i) {
+      var x = labelW + d * cellW;
+      ctx.fillText(narrow ? MONTHS[i].slice(0, 4) + "." : MONTHS[i], x + 2, 10);
+      ctx.fillStyle = line;
+      ctx.fillRect(x, 17, 1, H - 17);
+      ctx.fillStyle = muted;
+    });
+    ctx.textAlign = "right";
+    ctx.fillText("nuits", W, 10);
+    sim.years.forEach(function (y, row) {
+      var yy = top + row * (rowH + gap);
+      ctx.fillStyle = muted;
+      ctx.textAlign = "left";
+      ctx.font = "500 " + (narrow ? 10 : 12) + "px " + cssVar("--font-data");
+      ctx.fillText(narrow ? "'" + String(y.year).slice(2) : String(y.year), 0, yy + rowH / 2);
+      for (var d = 0; d < y.indoor.length; d++) {
+        ctx.fillStyle = tempColor(y.indoor[d]);
+        ctx.fillRect(labelW + d * cellW, yy, Math.ceil(cellW + 0.4), rowH);
+      }
+      ctx.textAlign = "right";
+      ctx.fillStyle = y.n26 >= 1 ? ink : muted;
+      ctx.font = (y.n26 >= 20 ? "600 " : "500 ") + "12px " + cssVar("--font-data");
+      ctx.fillText(String(y.n26), W, yy + rowH / 2);
+    });
+    stripesGeom = { W: W, labelW: labelW, countW: countW, top: top, rowH: rowH, gap: gap, cellW: cellW, sim: sim };
+    renderStripesLegend();
+  }
+
+  function renderStripesLegend() {
+    var stops = [19, 22.5, 25, 26.5, 28.5, 31.5, 35];
+    var grad = "linear-gradient(90deg," + stops.map(function (t, i) { return tempColor(t) + " " + Math.round((i / (stops.length - 1)) * 100) + "%"; }).join(",") + ")";
+    var label = state.view === "now"
+      ? "Climat observé 2017-2026"
+      : "Mêmes étés, +" + fr(M.SCENARIOS_2050.central.tn, 1) + " °C la nuit et +" + fr(M.SCENARIOS_2050.central.tx, 1) + " °C le jour";
+    $("stripes-legend").innerHTML =
+      '<span class="ramp"><span class="num">19 °C</span><span class="bar" style="background:' + grad + '"></span><span class="num">35 °C</span></span>' +
+      "<span>Seuil de nuit étouffante : 26 °C dans la chambre</span><span>" + escapeHtml(label) + "</span>";
+  }
+
+  function wireStripes() {
+    var canvas = $("stripes"), tip = $("stripes-tip");
+    function move(ev) {
+      var g = stripesGeom;
+      if (!g) return;
+      var rect = canvas.getBoundingClientRect();
+      var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+      var row = Math.floor((y - g.top) / (g.rowH + g.gap));
+      var d = Math.floor((x - g.labelW) / g.cellW);
+      if (row < 0 || row >= g.sim.years.length || d < 0 || d >= 122 || (y - g.top) % (g.rowH + g.gap) > g.rowH) { tip.hidden = true; return; }
+      var yr = g.sim.years[row], t = yr.indoor[d];
+      var label = dayLabel(d) + " " + yr.year + (state.view === "now" ? "" : " (version 2050)");
+      tip.innerHTML = escapeHtml(label) + " · chambre <span class=\"num\">" + fr(t, 1) + " °C</span>" + " · nuit dehors <span class=\"num\">" + fr(yr.tnLocal[d], 1) + " °C</span>";
+      tip.style.left = Math.min(Math.max(x, 120), g.W - 120) + "px";
+      tip.style.top = g.top + row * (g.rowH + g.gap) + "px";
+      tip.hidden = false;
+    }
+    canvas.addEventListener("mousemove", move);
+    canvas.addEventListener("click", move);
+    canvas.addEventListener("mouseleave", function () { tip.hidden = true; });
+    ["now", "2050"].forEach(function (v) {
+      $("view-" + v).addEventListener("click", function () {
+        state.view = v;
+        $("view-now").setAttribute("aria-pressed", v === "now" ? "true" : "false");
+        $("view-2050").setAttribute("aria-pressed", v === "2050" ? "true" : "false");
+        if (state.result) renderStripes(state.result);
+      });
+    });
+  }
+
+  // Soirée chaude ------------------------------------------------------------
+  function renderWaterfall(r) {
+    var e = r.evening;
+    var items = [
+      { label: "Air extérieur des derniers jours", value: e.outdoor, base: true },
+      { label: "Îlot de chaleur du quartier", value: e.quartier },
+      { label: r.params.profile.floor === "roof" ? "Toiture juste au-dessus" : "Chaleur de la toiture", value: e.roof, skip: e.roof < 0.05 },
+      { label: "Soleil par les fenêtres", value: e.facade },
+      { label: "Chaleur produite dedans", value: e.gain },
+      { label: "Fraîcheur de la nuit", value: e.vent },
+      { label: "Chambre au coucher", value: e.indoor, total: true }
+    ].filter(function (x) { return !x.skip; });
+    var running = 0, rows = [];
+    items.forEach(function (it) {
+      if (it.base) { rows.push({ it: it, from: 18, to: it.value }); running = it.value; }
+      else if (it.total) rows.push({ it: it, from: 18, to: it.value });
+      else { rows.push({ it: it, from: running, to: running + it.value }); running += it.value; }
+    });
+    var maxT = Math.max.apply(null, rows.map(function (r) { return Math.max(r.from, r.to); }));
+    var lo = 18, hi = Math.max(30, Math.ceil(maxT + 0.5));
+    var pct = function (t) { return ((t - lo) / (hi - lo)) * 100; };
+    var thr = pct(M.THRESHOLD);
+    var html = rows.map(function (row) {
+      var a = Math.min(row.from, row.to), b = Math.max(row.from, row.to);
+      var color = row.it.total ? tempColor(row.it.value) : row.it.base ? cssVar("--muted") : row.to < row.from ? cssVar("--h0") : cssVar("--h3");
+      var val = row.it.base || row.it.total ? fr(row.it.value, 1) + " °C" : (row.it.value >= 0 ? "+" : "−") + fr(Math.abs(row.it.value), 1) + " °C";
+      return '<div class="wf-row' + (row.it.total ? " total" : "") + '" role="listitem"><span class="lab">' + escapeHtml(row.it.label) + "</span>" +
+        '<span class="wf-track"><span class="wf-bar" style="left:' + pct(a).toFixed(2) + "%;width:" + Math.max(0.6, pct(b) - pct(a)).toFixed(2) + "%;background:" + color + '"></span>' +
+        '<span class="wf-thr" style="left:' + thr.toFixed(2) + '%"></span></span><span class="val">' + val + "</span></div>";
+    }).join("");
+    var ticks = [];
+    var step = $("wf").clientWidth < 480 ? 4 : 2;
+    for (var t = lo; t <= hi; t += step) ticks.push('<span style="left:' + pct(t).toFixed(2) + '%">' + t + "°</span>");
+    html += '<div class="wf-axis" aria-hidden="true"><span></span><span class="ticks">' + ticks.join("") + "</span><span></span></div>";
+    $("wf").innerHTML = html;
+    $("wf-sub").textContent = "Moyenne des " + Math.round(e.days) + " jours par été où il fait plus de 28 °C à Paris-Montsouris.";
+    $("wf-caption").textContent = e.indoor >= M.THRESHOLD
+      ? "Ces soirs-là, la chambre dépasse en moyenne le seuil de 26 °C (ligne pointillée)."
+      : "Ces soirs-là, la chambre reste en moyenne sous le seuil de 26 °C (ligne pointillée).";
+  }
+
+  // 2050 ---------------------------------------------------------------------
+  function renderFuture(r) {
+    $("f-now").innerHTML = nights(r.n26) + ' <small style="font-size:.4em;font-weight:600">' + plural(r.n26, "nuit", "nuits") + "</small>";
+    $("f-now").style.color = scoreColor(Math.min(r.score, 9.2));
+    $("f-now-s").textContent = "score " + r.scoreRounded + "/10 · " + r.verdict.label.toLowerCase();
+    $("f-2050").innerHTML = nights(r.y2050.n26) + ' <small style="font-size:.4em;font-weight:600">' + plural(r.y2050.n26, "nuit", "nuits") + "</small>";
+    $("f-2050").style.color = scoreColor(Math.min(r.y2050.score, 9.2));
+    $("f-2050-s").textContent = "score " + r.y2050.scoreRounded + "/10 · entre " + nights(r.y2050.range[0]) + " et " + nights(r.y2050.range[1]) + " nuits";
+    var lines = [
+      ["Aujourd'hui", r.n26, r.score],
+      ["2050, fourchette basse", r.y2050.range[0], M.scoreFrom(r.y2050.range[0], 0)],
+      ["2050, référence", r.y2050.n26, r.y2050.score],
+      ["2050, fourchette haute", r.y2050.range[1], M.scoreFrom(r.y2050.range[1], 0)]
+    ];
+    var max = Math.max(10, lines.reduce(function (m, l) { return Math.max(m, l[1]); }, 0));
+    $("f-bars").innerHTML = lines.map(function (l) {
+      return '<div class="bar-row"><span>' + l[0] + '</span><span class="track"><span class="fill" style="display:block;width:' + Math.max(1, (l[1] / max) * 100).toFixed(1) + "%;background:" + scoreColor(l[2]) + '"></span></span><span class="num">' + nights(l[1]) + "</span></div>";
+    }).join("");
+  }
+
+  // Conseils -----------------------------------------------------------------
+  function renderAdvice(list) {
+    $("advice").innerHTML = list.slice(0, 6).map(function (a) {
+      var gain = a.saved >= 0.5
+        ? "−" + Math.round(a.saved) + " " + plural(a.saved, "nuit", "nuits") + (a.felt ? " <small>ressenties</small>" : " <small>par été</small>")
+        : "Effet faible <small>ici</small>";
+      return '<article class="card tip-card"><span class="who">' + escapeHtml(a.who) + '</span><span class="gain">' + gain + "</span><h3>" + escapeHtml(a.title) + "</h3><p>" + escapeHtml(a.text) + "</p></article>";
+    }).join("");
+  }
+
+  // Questions de visite --------------------------------------------------------
+  function renderVisit() {
+    var p = state.profile, items = [];
+    if (p.shutters === "unknown" || p.shutters === "none") items.push([p.shutters === "unknown", "Y a-t-il des volets ou des stores extérieurs ? Si non, le propriétaire accepte-t-il d'en poser ?"]);
+    if (p.orient === "unknown") items.push([true, "De quel côté donnent la chambre et le séjour ? La boussole du téléphone suffit."]);
+    if (p.traversant === "unknown") items.push([true, "L'appartement a-t-il des fenêtres sur deux façades opposées pour faire un courant d'air ?"]);
+    if (p.dpeEte === "unknown") items.push([true, "Que dit la case « confort d'été » du DPE ? Elle figure sur les diagnostics réalisés depuis 2021."]);
+    if (p.era === "unknown") items.push([true, "En quelle année l'immeuble a-t-il été construit ?"]);
+    if (p.floor === "roof" || p.floor === "top") items.push([false, "La toiture ou les combles ont-ils été isolés ? Des travaux sont-ils votés en copropriété ?"]);
+    items.push([false, "La chambre donne-t-elle sur rue ou sur cour ? Pourras-tu dormir fenêtre ouverte ?"]);
+    items.push([false, "Comment était l'appartement en juillet dernier ? Pose la question au locataire qui part ou à un voisin."]);
+    $("questions").innerHTML = items.map(function (it) {
+      return '<li><span class="tag' + (it[0] ? " todo" : "") + '">' + (it[0] ? "à vérifier" : "à demander") + "</span><span>" + escapeHtml(it[1]) + "</span></li>";
+    }).join("");
+  }
+
+  // Partage ------------------------------------------------------------------
+  function shareLine(r) {
+    if (r.scoreRounded >= 8) return "RIP mon été.";
+    if (r.scoreRounded >= 6) return "Ventilo obligatoire.";
+    if (r.scoreRounded >= 4) return "Ça passe, avec des volets.";
+    return "Je dormirai au frais.";
+  }
+  function shareText(r) {
+    return "Mon appart a eu " + r.scoreRounded + "/10 sur Fournaise : " + nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") +
+      " par été, " + nights(r.y2050.n26) + " en 2050. " + shareLine(r);
+  }
+  function renderShare(r) {
+    var story = $("story");
+    var c1 = scoreColor(Math.min(10, r.score + 1.2)), c2 = scoreColor(Math.min(10, r.score + 3));
+    story.style.setProperty("--story-a", c1);
+    story.style.setProperty("--story-b", c2);
+    $("story-score").innerHTML = r.scoreRounded + "<small>/10</small>";
+    $("story-line").textContent = shareLine(r);
+    var arr = r.heat.arr ? "Paris " + arrName(r.heat.arr.n) : "Paris";
+    $("story-meta").textContent = nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") + " par été · " + arr;
+    $("share-text").textContent = shareText(r);
+  }
+
+  function toast(text) {
+    var t = $("share-toast");
+    t.textContent = text;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.textContent = ""; }, 3500);
+  }
+
+  function selectText(el) {
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function drawShareImage(r) {
+    var W = 1080, H = 1350;
+    var c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    var ctx = c.getContext("2d");
+    var g = ctx.createRadialGradient(W * 0.2, 0, 50, W * 0.4, H * 0.4, H * 1.05);
+    g.addColorStop(0, scoreColor(Math.min(10, r.score + 1.2)));
+    g.addColorStop(0.55, scoreColor(Math.min(10, r.score + 3)));
+    g.addColorStop(1, "#24061b");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    var shade = ctx.createLinearGradient(0, 0, 0, H);
+    shade.addColorStop(0, "rgba(12,6,14,0.28)");
+    shade.addColorStop(1, "rgba(12,6,14,0.7)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#ffffff";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = "800 52px Unbounded, 'Arial Black', sans-serif";
+    ctx.fillText("fournaise", 80, 130);
+    ctx.font = "800 420px Unbounded, 'Arial Black', sans-serif";
+    var s = String(r.scoreRounded);
+    ctx.fillText(s, 70, 760);
+    var sw = ctx.measureText(s).width;
+    ctx.globalAlpha = 0.8;
+    ctx.font = "700 120px Unbounded, 'Arial Black', sans-serif";
+    ctx.fillText("/10", 90 + sw, 760);
+    ctx.globalAlpha = 1;
+    ctx.font = "700 76px Unbounded, 'Arial Black', sans-serif";
+    ctx.fillText(shareLine(r), 80, 900);
+    ctx.font = "500 44px 'Instrument Sans', 'Segoe UI', sans-serif";
+    var arr = r.heat.arr ? "Paris " + arrName(r.heat.arr.n) : "Paris";
+    ctx.fillText(nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") + " par été", 80, 1010);
+    ctx.fillText(nights(r.y2050.n26) + " en 2050 · " + arr, 80, 1070);
+    ctx.globalAlpha = 0.75;
+    ctx.font = "500 34px 'Instrument Sans', 'Segoe UI', sans-serif";
+    ctx.fillText("Score de chaleur estimé avant de louer · Fournaise", 80, 1250);
+    ctx.globalAlpha = 1;
+    return c;
+  }
+
+  var downloads = null;
+  function wireShare() {
+    $("copy-btn").addEventListener("click", function () {
+      var text = $("share-text").textContent;
+      var done = function () { toast("Message copié."); };
+      var fallback = function () { selectText($("share-text")); toast("Texte sélectionné : copie-le avec Ctrl+C ou un appui long."); };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+        else fallback();
+      } catch (e) { fallback(); }
+    });
+    var imgBtn = $("img-btn");
+    var hasClaude = window.claude && typeof window.claude.use === "function";
+    if (hasClaude) {
+      imgBtn.hidden = true;
+      window.claude.use("downloads").then(function (ns) { downloads = ns; imgBtn.hidden = !ns; }, function () { imgBtn.hidden = true; });
+    }
+    imgBtn.addEventListener("click", function () {
+      if (!state.result) return;
+      var ready = document.fonts && document.fonts.load
+        ? Promise.all([document.fonts.load("800 100px Unbounded"), document.fonts.load("500 40px 'Instrument Sans'")]).catch(function () {})
+        : Promise.resolve();
+      ready.then(function () {
+        var canvas = drawShareImage(state.result);
+        canvas.toBlob(function (blob) {
+          if (!blob) { toast("L'image n'a pas pu être créée."); return; }
+          if (downloads) {
+            downloads.save({ filename: "fournaise-score.png", data: blob }).then(function () { toast("Image enregistrée."); }, function (err) {
+              if (err && err.code === "declined") return;
+              toast("L'enregistrement n'est pas disponible ici.");
+            });
+          } else {
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "fournaise-score.png";
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+            toast("Image enregistrée.");
+          }
+        }, "image/png");
+      });
+    });
+  }
+
+  // Tableau des coefficients (calculé depuis le modèle) -------------------------
+  function renderCoefTable() {
+    var base = { floor: "mid", orient: "N", windows: "double", shutters: "none", traversant: "no", nightOpen: "yes", era: "1914_1948", size: "m", dpeEte: "moyen", ac: "no" };
+    function evening(p) {
+      var prm = M.params(Object.assign({}, base, p));
+      var trm = 29, tn = 22, sun = 1.25;
+      var free = 20 + prm.damping * (trm - 20) + prm.gain + (prm.roof + prm.facade) * sun;
+      return free - prm.vent * (free - tn);
+    }
+    var ref = evening({});
+    var rows = [
+      ["Sous les toits (au lieu d'un étage intermédiaire)", { floor: "roof" }],
+      ["Velux sous les toits", { floor: "roof", windows: "roof" }],
+      ["Dernier étage", { floor: "top" }],
+      ["Fenêtres plein ouest (au lieu du nord)", { orient: "W" }],
+      ["Fenêtres plein sud", { orient: "S" }],
+      ["Volets ou stores extérieurs, côté sud", { orient: "S", shutters: "ext" }],
+      ["Rideaux intérieurs, côté sud", { orient: "S", shutters: "int" }],
+      ["Moins de 15 m²", { size: "xs" }],
+      ["Immeuble 1949-1974", { era: "1949_1974" }],
+      ["Pierre, avant 1914", { era: "pre1914" }],
+      ["Confort d'été DPE insuffisant", { dpeEte: "insuffisant" }],
+      ["Appartement traversant", { traversant: "yes" }],
+      ["Fenêtres fermées la nuit", { nightOpen: "no" }]
+    ];
+    $("coef-table").querySelector("tbody").innerHTML = rows.map(function (r) {
+      var d = evening(r[1]) - ref;
+      return "<tr><td>" + escapeHtml(r[0]) + '</td><td class="num">' + (d >= 0 ? "+" : "−") + fr(Math.abs(d), 1) + " °C</td></tr>";
+    }).join("");
+  }
+
+  // ---------------------------------------------------------------------------
+  function update() {
+    if (!state.location) return;
+    var r = M.analyze(D.climate, state.location, state.profile, ARRS);
+    state.result = r;
+    renderVerdict(r);
+    renderStripes(r);
+    renderWaterfall(r);
+    renderFuture(r);
+    renderAdvice(M.advice(D.climate, state.location, state.profile, ARRS, r));
+    renderVisit();
+    renderShare(r);
+    placePin();
+    $("loc-text").innerHTML = "<strong>" + escapeHtml(state.location.label) + "</strong>";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-example]"), function (b) {
+      b.setAttribute("aria-pressed", b.dataset.example === state.example ? "true" : "false");
+    });
+  }
+
+  function onThemeChange() {
+    readPalette();
+    refreshMapHeat();
+    if (state.result) update();
+  }
+
+  function init() {
+    readPalette();
+    renderQuestions($("q-main"), Q_MAIN);
+    renderQuestions($("q-more"), Q_MORE);
+    $("form").addEventListener("change", function (e) {
+      var t = e.target;
+      if (t.type !== "radio") return;
+      state.profile[t.name.slice(2)] = t.value;
+      markEdited();
+      update();
+    });
+    renderExamples();
+    renderArrSelect();
+    renderMap();
+    wireAddress();
+    wireStripes();
+    wireShare();
+    renderCoefTable();
+    loadExample("bonne");
+
+    var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    if (mq && mq.addEventListener) mq.addEventListener("change", onThemeChange);
+    if (window.MutationObserver) new MutationObserver(onThemeChange).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    var lastW = 0;
+    var onResize = function () {
+      var w = $("stripes-wrap").clientWidth;
+      if (w !== lastW && state.result) { lastW = w; renderStripes(state.result); }
+    };
+    if (window.ResizeObserver) new ResizeObserver(onResize).observe($("stripes-wrap"));
+    else window.addEventListener("resize", onResize);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (state.result) renderStripes(state.result); });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+
+</script>
