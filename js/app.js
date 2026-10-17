@@ -493,7 +493,9 @@
     var ul = $("addr-suggest");
     if (!list.length) { ul.hidden = true; ul.innerHTML = ""; return; }
     ul.innerHTML = list.map(function (r, i) {
-      return '<li role="option" id="sug-' + i + '" data-i="' + i + '">' + escapeHtml(r.label) + "</li>";
+      var m = /^(.*?)\s(\d{5}\s.*)$/.exec(r.label);
+      var text = m ? escapeHtml(m[1]) + "<small>" + escapeHtml(m[2]) + "</small>" : escapeHtml(r.label);
+      return '<li role="option" id="sug-' + i + '" data-i="' + i + '"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.3" fill="currentColor"/></svg><span>' + text + "</span></li>";
     }).join("");
     ul.hidden = false;
   }
@@ -525,10 +527,11 @@
       if (q.length < 5 || state.networkDown) { showSuggestions([]); return; }
       debounce = setTimeout(function () {
         lastQuery = q;
+        busy(true);
         geocode(q + (/paris|750\d\d/i.test(q) ? "" : " Paris")).then(function (res) {
           if (lastQuery !== q) return;
           showSuggestions(parisOnly(res).slice(0, 5));
-        }).catch(function () { state.networkDown = true; showSuggestions([]); });
+        }).catch(function () { state.networkDown = true; showSuggestions([]); }).then(function () { if (lastQuery === q) busy(false); });
       }, 280);
     });
     input.addEventListener("keydown", function (e) {
@@ -553,14 +556,22 @@
       var q = input.value.trim();
       if (!q) { note("Tape une adresse, ou clique sur la carte.", true); return; }
       if (state.networkDown) { offlineFallback(q); return; }
-      note("Recherche…");
+      note("Recherche de l'adresse…");
+      lastQuery = q;
+      busy(true);
       geocode(q + (/paris|750\d\d/i.test(q) ? "" : " Paris")).then(function (res) {
+        busy(false);
         var paris = parisOnly(res);
         if (paris.length) chooseSuggestion(paris[0]);
         else if (res.length) note("Cette adresse est hors de Paris. Fournaise ne couvre que Paris pour l'instant ; Lyon, Marseille et Toulouse sont les prochaines villes.", true);
         else note("Adresse introuvable. Vérifie l'orthographe ou clique sur la carte.", true);
-      }).catch(function () { state.networkDown = true; offlineFallback(q); });
+      }).catch(function () { busy(false); state.networkDown = true; offlineFallback(q); });
     });
+  }
+
+  function busy(on) {
+    $("addr-go").classList.toggle("loading", on);
+    $("addr-go").setAttribute("aria-busy", on ? "true" : "false");
   }
 
   // ---------------------------------------------------------------------------
@@ -576,7 +587,15 @@
     var color = scoreColor(Math.min(r.score, 9.2));
     var scoreEl = $("v-score");
     scoreEl.style.setProperty("--score-color", color);
+    $("verdict").style.setProperty("--score-accent", color);
+    var changed = scoreEl.dataset.v !== String(r.scoreRounded);
     scoreEl.innerHTML = r.scoreRounded + "<small>/10</small>";
+    scoreEl.dataset.v = r.scoreRounded;
+    if (changed) { scoreEl.classList.remove("pop"); void scoreEl.offsetWidth; scoreEl.classList.add("pop"); }
+    $("dock-score").textContent = r.scoreRounded;
+    $("dock-score").style.setProperty("--score-color", color);
+    $("dock-name").textContent = r.verdict.label;
+    $("dock-sub").textContent = r.scoreRounded + "/10 · " + nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") + " par été";
     $("v-mark").style.left = ((r.score - 1) / 9) * 100 + "%";
     $("v-name").textContent = r.verdict.label;
     $("v-text").textContent = r.ac
@@ -1009,7 +1028,45 @@
     svg.addEventListener("mouseleave", function () { tip.hidden = true; });
   }
 
+  function syncThemeColor() {
+    var bg = cssVar("--bg");
+    Array.prototype.forEach.call(document.querySelectorAll('meta[name="theme-color"]'), function (m) { m.setAttribute("content", bg); });
+  }
+
+  // Barre de score flottante sur mobile : visible tant qu'on remplit le formulaire sans voir le verdict.
+  function wireDock() {
+    var dock = $("dock");
+    if (!window.IntersectionObserver) return;
+    var seen = { form: false, verdict: false };
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { seen[e.target.id] = e.isIntersecting; });
+      var show = seen.form && !seen.verdict && state.result && window.matchMedia("(max-width: 900px)").matches;
+      dock.hidden = false;
+      dock.classList.toggle("on", !!show);
+      dock.setAttribute("aria-hidden", show ? "false" : "true");
+      dock.tabIndex = show ? 0 : -1;
+    }, { rootMargin: "-30% 0px -10% 0px" });
+    io.observe($("form"));
+    io.observe($("verdict"));
+  }
+
+  // Lien actif dans la barre du haut selon la section lue.
+  function wireScrollSpy() {
+    if (!window.IntersectionObserver) return;
+    var links = {};
+    Array.prototype.forEach.call(document.querySelectorAll(".topbar nav a"), function (a) { links[a.getAttribute("href").slice(1)] = a; });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        Object.keys(links).forEach(function (id) { links[id].removeAttribute("aria-current"); });
+        links[e.target.id].setAttribute("aria-current", "true");
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    Object.keys(links).forEach(function (id) { var el = $(id); if (el) io.observe(el); });
+  }
+
   function onThemeChange() {
+    syncThemeColor();
     readPalette();
     refreshMapHeat();
     renderHero();
@@ -1040,6 +1097,10 @@
     wireMapTip();
     renderHero();
     loadExample("bonne");
+    wireDock();
+    wireScrollSpy();
+    syncThemeColor();
+    document.documentElement.classList.add("ready");
 
     var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
     if (mq && mq.addEventListener) mq.addEventListener("change", onThemeChange);

@@ -88,6 +88,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
 body {
@@ -103,6 +104,7 @@ a { color: inherit; }
 h1, h2, h3 { font-family: var(--font-display); line-height: 1.12; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
 h2 { font-size: clamp(1.35rem, 2.6vw, 1.85rem); font-weight: 700; }
 h3 { font-size: 1.02rem; font-weight: 600; }
+.card h2 { font-size: clamp(1.15rem, 1.9vw, 1.4rem); }
 p { margin: 0; }
 .num, .data { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
 
@@ -296,7 +298,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .bar-row .num { text-align: right; }
 
 /* Conseils */
-.advice { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.advice { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
 .tip-card { display: grid; gap: 8px; align-content: start; }
 .tip-card .gain { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; color: var(--ok); }
 .tip-card .gain small { font-family: var(--font-body); font-weight: 500; font-size: 0.8rem; color: var(--muted); }
@@ -305,9 +307,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* Visite + partage */
 .questions { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
-.questions li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; font-size: 0.95rem; }
-.questions .tag { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--surface-2); color: var(--muted); margin-top: 3px; white-space: nowrap; }
-.questions .tag.todo { color: var(--warn); }
+.questions li { display: grid; grid-template-columns: 6.6rem minmax(0, 1fr); gap: 10px; align-items: start; font-size: 0.95rem; }
+.questions .tag { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: var(--surface-2); color: var(--muted); margin-top: 3px; white-space: nowrap; text-align: center; }
+.questions .tag.todo { color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
 .share { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 20px; align-items: center; }
 @media (max-width: 520px) { .share { grid-template-columns: minmax(0, 1fr); } }
 .story { aspect-ratio: 4 / 5; max-width: 100%; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; background: linear-gradient(rgba(12, 6, 14, 0.28), rgba(12, 6, 14, 0.7)), radial-gradient(120% 90% at 20% 0%, var(--story-a, #f19a3e) 0%, var(--story-b, #a3133f) 55%, #24061b 100%); box-shadow: var(--shadow); overflow: hidden; }
@@ -328,7 +330,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .steps li::before { content: counter(step); font-family: var(--font-data); font-weight: 500; font-size: 0.85rem; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); color: var(--muted); }
 .steps strong { display: block; }
 .steps p { color: var(--muted); font-size: 0.93rem; }
-.formula { font-family: var(--font-data); font-size: 0.85rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; overflow-x: auto; white-space: pre; margin-top: 6px; color: var(--ink); }
+.formula { font-family: var(--font-data); font-size: 0.85rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 6px; color: var(--ink); }
 .tbl-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
 th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -368,7 +370,7 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
 .faq details[open] summary::after { content: "−"; }
 .faq details p { padding-bottom: 14px; color: var(--muted); font-size: 0.95rem; }
 .map-tip { position: absolute; z-index: 3; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 0.78rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 12px)); }
-.score { animation: pop 0.45s ease; }
+.score.pop { animation: pop 0.45s cubic-bezier(.2,.8,.2,1); }
 @keyframes pop { from { transform: scale(0.94); opacity: 0.4; } to { transform: none; opacity: 1; } }
 @media (max-width: 520px) { .hero-cta .btn { flex: 1 1 100%; } .trust { flex-direction: column; gap: 4px; } }
 .src td:first-child { min-width: 11rem; font-weight: 500; }
@@ -385,7 +387,114 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
 .v-building strong { color: var(--ink); font-weight: 600; }
 .v-building em { font-style: normal; color: var(--ink); }
 
+/* ---------------------------------------------------------------------------
+   Finitions « application » : rythme, états, mobile
+   --------------------------------------------------------------------------- */
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+::selection { background: color-mix(in srgb, var(--h3) 40%, transparent); }
+.noscript { margin: 0; padding: 12px 16px; background: var(--warn); color: #fff; text-align: center; font-weight: 600; }
+.card { box-shadow: 0 1px 2px rgba(20, 30, 40, 0.04); }
+.section { padding-block: 56px; gap: 22px; }
+.section-head h2 + p { margin-top: 2px; }
+.grid2 { align-items: start; }
+
+/* Barre du haut : lien actif */
+.topbar nav a[aria-current="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.topbar { transition: box-shadow 0.2s; }
+
+/* Ouverture : ligne de confiance en pastilles */
+.trust { gap: 8px; margin-top: 6px; }
+.trust li { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 10px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); white-space: nowrap; }
+.trust li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; }
+@media (max-width: 520px) { .trust { flex-direction: row; } .trust li { font-size: 0.82rem; } }
+
+/* Boutons : hauteur commune, état de chargement */
+.btn { min-height: 42px; gap: 8px; }
+.btn.big { min-height: 50px; }
+.btn.hot { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 16px -6px color-mix(in srgb, var(--accent) 70%, transparent); }
+.btn:disabled, .btn[aria-busy="true"] { cursor: progress; }
+.spinner { display: none; width: 15px; height: 15px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.7s linear infinite; }
+.btn.loading .spinner { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Champ d'adresse */
+.addr-row input { min-height: 44px; transition: border-color 0.15s, box-shadow 0.15s; }
+.addr-row input:focus { border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 22%, transparent); }
+.suggest { top: 78px; padding: 6px; }
+.suggest li { display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; }
+.suggest li svg { flex: none; margin-top: 2px; color: var(--muted); }
+.suggest li small { display: block; color: var(--muted); font-size: 0.8rem; }
+
+/* Choix : cibles tactiles confortables, retour visuel net */
+.seg label { min-height: 40px; padding: 8px 14px; transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s; }
+.seg label:active { transform: scale(0.97); }
+.form { padding: 24px; gap: 26px; }
+.q-label { font-size: 0.94rem; }
+.refine summary { flex-wrap: wrap; row-gap: 2px; }
+.refine summary::after { order: 3; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); }
+.refine .hint { flex: 1 1 12rem; }
+.map-legend { row-gap: 4px; }
+.map-legend .grow { flex-basis: 100%; height: 0; }
+@media (min-width: 640px) { .map-legend .grow { flex-basis: auto; height: auto; } }
+
+/* Verdict */
+.verdict { padding: 26px; gap: 20px; box-shadow: inset 0 4px 0 var(--score-accent, var(--accent)), var(--shadow); }
+.stat .v { transition: color 0.2s; }
+.v-actions .btn { flex: 1 1 auto; }
+
+/* Rayures : défilement horizontal propre sur mobile */
+.stripes-scroll { scrollbar-width: thin; }
+
+/* Partage : vignette à taille raisonnable sur mobile */
+@media (max-width: 520px) { .story { max-width: 260px; } }
+
+/* Sources : tableau en fiches sur petit écran */
+@media (max-width: 700px) {
+  .src thead { display: none; }
+  .src, .src tbody, .src tr, .src td { display: block; width: 100%; min-width: 0 !important; }
+  .src tr { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .src td { border: 0; padding: 2px 0; }
+  .src td:first-child { font-weight: 600; }
+  .src td:nth-child(2) { padding: 6px 0; }
+  .src td:nth-child(3) { font-size: 0.86rem; }
+}
+
+/* Barre de score flottante (mobile) */
+.dock { display: none; }
+@media (max-width: 900px) {
+  .dock { position: fixed; z-index: 20; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 10px; border-radius: 16px; text-decoration: none; color: var(--ink); background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.35); transform: translateY(calc(100% + 30px)); opacity: 0; pointer-events: none; transition: transform 0.3s cubic-bezier(.2,.8,.2,1), opacity 0.2s; }
+  .dock.on { transform: none; opacity: 1; pointer-events: auto; }
+  .dock-score { flex: none; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; color: #fff; background: var(--score-color, var(--accent)); }
+  .dock-text { display: grid; min-width: 0; line-height: 1.25; }
+  .dock-text strong { font-family: var(--font-display); font-size: 0.92rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dock-text span { font-size: 0.8rem; color: var(--muted); }
+  .dock-go { margin-left: auto; flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line); }
+  footer { padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+@media (max-width: 520px) {
+  .form, .verdict { padding: 18px; }
+  .section { padding-block: 40px; }
+  .card { padding: 18px; }
+}
+
+/* Arrivée en douceur une fois le calcul prêt */
+html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
+.verdict .score, .stats { transition: opacity 0.3s; }
+@media (max-width: 520px) {
+  .questions li { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .questions .tag { justify-self: start; }
+}
+[id] { scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 80px); }
+.map-legend .lg-ramp { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; min-width: 0; }
+.map-legend .ramp { flex: 0 1 120px; min-width: 40px; }
+@media (max-width: 520px) {
+  .loc-line select { margin-left: 0; width: 100%; }
+  .map-legend .lg-ramp { flex: 1 1 100%; }
+  .map-legend .ramp { flex: 1 1 auto; }
+}
+
 </style>
+<noscript><p class="noscript">Fournaise calcule le score dans ton navigateur : active JavaScript pour l'utiliser.</p></noscript>
 <a class="skip" href="#outil">Aller directement à l'outil</a>
 <header class="topbar">
   <div class="wrap topbar-in">
@@ -413,9 +522,9 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
         <a class="btn ghost big" href="#methode">Voir la méthode</a>
       </div>
       <ul class="trust" aria-label="En bref">
-        <li><strong>10 étés</strong> de relevés Météo-France</li>
+        <li><strong>10 étés</strong> Météo-France</li>
         <li><strong>20</strong> arrondissements</li>
-        <li><strong>Gratuit</strong>, sans compte, rien n'est envoyé</li>
+        <li><strong>Gratuit</strong> et sans compte</li>
       </ul>
     </div>
     <figure class="hero-fig">
@@ -433,16 +542,16 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
         <div class="addr">
           <label class="q-label" for="addr-input">Adresse à Paris</label>
           <div class="addr-row">
-            <input id="addr-input" type="text" autocomplete="off" placeholder="12 rue des Martyrs, 75009 Paris" aria-autocomplete="list" aria-controls="addr-suggest">
-            <button class="btn" type="submit" id="addr-go">Localiser</button>
+            <input id="addr-input" type="text" autocomplete="off" placeholder="Ex. 12 rue des Martyrs" enterkeyhint="search" spellcheck="false" aria-autocomplete="list" aria-controls="addr-suggest">
+            <button class="btn" type="submit" id="addr-go"><span class="spinner" aria-hidden="true"></span><span class="btn-label">Localiser</span></button>
           </div>
           <ul class="suggest" id="addr-suggest" role="listbox" hidden></ul>
-          <p class="note" id="addr-note">Tape une adresse, ou clique directement sur la carte.</p>
+          <p class="note" id="addr-note" aria-live="polite">Tape une adresse, ou clique directement sur la carte.</p>
         </div>
         <div class="map-box">
           <svg id="map" role="img" aria-label="Carte de Paris : clique pour placer le logement"></svg>
           <div class="map-legend">
-            <span>Nuits plus fraîches</span><span class="ramp" aria-hidden="true"></span><span>plus chaudes</span>
+            <span class="lg-ramp"><span>Nuits plus fraîches</span><span class="ramp" aria-hidden="true"></span><span>plus chaudes</span></span>
             <span class="grow"></span><span>Îlots de chaleur (végétation et eau, Landsat)</span>
           </div>
         </div>
@@ -498,6 +607,12 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
       </div>
     </aside>
   </section>
+
+  <a class="dock" id="dock" href="#verdict" aria-label="Voir le score de chaleur" hidden>
+    <span class="dock-score" id="dock-score">–</span>
+    <span class="dock-text"><strong id="dock-name">Score de chaleur</strong><span id="dock-sub"></span></span>
+    <span class="dock-go" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+  </a>
 
   <div class="wrap"><hr class="rule"></div>
 
@@ -1674,7 +1789,9 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
     var ul = $("addr-suggest");
     if (!list.length) { ul.hidden = true; ul.innerHTML = ""; return; }
     ul.innerHTML = list.map(function (r, i) {
-      return '<li role="option" id="sug-' + i + '" data-i="' + i + '">' + escapeHtml(r.label) + "</li>";
+      var m = /^(.*?)\s(\d{5}\s.*)$/.exec(r.label);
+      var text = m ? escapeHtml(m[1]) + "<small>" + escapeHtml(m[2]) + "</small>" : escapeHtml(r.label);
+      return '<li role="option" id="sug-' + i + '" data-i="' + i + '"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.3" fill="currentColor"/></svg><span>' + text + "</span></li>";
     }).join("");
     ul.hidden = false;
   }
@@ -1706,10 +1823,11 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
       if (q.length < 5 || state.networkDown) { showSuggestions([]); return; }
       debounce = setTimeout(function () {
         lastQuery = q;
+        busy(true);
         geocode(q + (/paris|750\d\d/i.test(q) ? "" : " Paris")).then(function (res) {
           if (lastQuery !== q) return;
           showSuggestions(parisOnly(res).slice(0, 5));
-        }).catch(function () { state.networkDown = true; showSuggestions([]); });
+        }).catch(function () { state.networkDown = true; showSuggestions([]); }).then(function () { if (lastQuery === q) busy(false); });
       }, 280);
     });
     input.addEventListener("keydown", function (e) {
@@ -1734,14 +1852,22 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
       var q = input.value.trim();
       if (!q) { note("Tape une adresse, ou clique sur la carte.", true); return; }
       if (state.networkDown) { offlineFallback(q); return; }
-      note("Recherche…");
+      note("Recherche de l'adresse…");
+      lastQuery = q;
+      busy(true);
       geocode(q + (/paris|750\d\d/i.test(q) ? "" : " Paris")).then(function (res) {
+        busy(false);
         var paris = parisOnly(res);
         if (paris.length) chooseSuggestion(paris[0]);
         else if (res.length) note("Cette adresse est hors de Paris. Fournaise ne couvre que Paris pour l'instant ; Lyon, Marseille et Toulouse sont les prochaines villes.", true);
         else note("Adresse introuvable. Vérifie l'orthographe ou clique sur la carte.", true);
-      }).catch(function () { state.networkDown = true; offlineFallback(q); });
+      }).catch(function () { busy(false); state.networkDown = true; offlineFallback(q); });
     });
+  }
+
+  function busy(on) {
+    $("addr-go").classList.toggle("loading", on);
+    $("addr-go").setAttribute("aria-busy", on ? "true" : "false");
   }
 
   // ---------------------------------------------------------------------------
@@ -1757,7 +1883,15 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
     var color = scoreColor(Math.min(r.score, 9.2));
     var scoreEl = $("v-score");
     scoreEl.style.setProperty("--score-color", color);
+    $("verdict").style.setProperty("--score-accent", color);
+    var changed = scoreEl.dataset.v !== String(r.scoreRounded);
     scoreEl.innerHTML = r.scoreRounded + "<small>/10</small>";
+    scoreEl.dataset.v = r.scoreRounded;
+    if (changed) { scoreEl.classList.remove("pop"); void scoreEl.offsetWidth; scoreEl.classList.add("pop"); }
+    $("dock-score").textContent = r.scoreRounded;
+    $("dock-score").style.setProperty("--score-color", color);
+    $("dock-name").textContent = r.verdict.label;
+    $("dock-sub").textContent = r.scoreRounded + "/10 · " + nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") + " par été";
     $("v-mark").style.left = ((r.score - 1) / 9) * 100 + "%";
     $("v-name").textContent = r.verdict.label;
     $("v-text").textContent = r.ac
@@ -2190,7 +2324,45 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
     svg.addEventListener("mouseleave", function () { tip.hidden = true; });
   }
 
+  function syncThemeColor() {
+    var bg = cssVar("--bg");
+    Array.prototype.forEach.call(document.querySelectorAll('meta[name="theme-color"]'), function (m) { m.setAttribute("content", bg); });
+  }
+
+  // Barre de score flottante sur mobile : visible tant qu'on remplit le formulaire sans voir le verdict.
+  function wireDock() {
+    var dock = $("dock");
+    if (!window.IntersectionObserver) return;
+    var seen = { form: false, verdict: false };
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { seen[e.target.id] = e.isIntersecting; });
+      var show = seen.form && !seen.verdict && state.result && window.matchMedia("(max-width: 900px)").matches;
+      dock.hidden = false;
+      dock.classList.toggle("on", !!show);
+      dock.setAttribute("aria-hidden", show ? "false" : "true");
+      dock.tabIndex = show ? 0 : -1;
+    }, { rootMargin: "-30% 0px -10% 0px" });
+    io.observe($("form"));
+    io.observe($("verdict"));
+  }
+
+  // Lien actif dans la barre du haut selon la section lue.
+  function wireScrollSpy() {
+    if (!window.IntersectionObserver) return;
+    var links = {};
+    Array.prototype.forEach.call(document.querySelectorAll(".topbar nav a"), function (a) { links[a.getAttribute("href").slice(1)] = a; });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        Object.keys(links).forEach(function (id) { links[id].removeAttribute("aria-current"); });
+        links[e.target.id].setAttribute("aria-current", "true");
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    Object.keys(links).forEach(function (id) { var el = $(id); if (el) io.observe(el); });
+  }
+
   function onThemeChange() {
+    syncThemeColor();
     readPalette();
     refreshMapHeat();
     renderHero();
@@ -2221,6 +2393,10 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
     wireMapTip();
     renderHero();
     loadExample("bonne");
+    wireDock();
+    wireScrollSpy();
+    syncThemeColor();
+    document.documentElement.classList.add("ready");
 
     var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
     if (mq && mq.addEventListener) mq.addEventListener("change", onThemeChange);

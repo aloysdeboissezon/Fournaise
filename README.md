@@ -43,6 +43,9 @@ scripts/check_meteofrance.py  compare les relevés embarqués au fichier officie
 scripts/build_dpe.py       regroupe les DPE par adresse
 scripts/build_data.py      régénère js/data-paris.js à partir de data/
 scripts/build_artifact.py  produit dist/fournaise.html
+scripts/build_icons.py     dessine les icônes (favicon, écran d'accueil) dans img/
+scripts/og.html, build_og.js   aperçu de partage img/og.png (1200 × 630) : node scripts/build_og.js
+site.webmanifest           installation sur l'écran d'accueil (nom, couleurs, icônes)
 ```
 
 Ajouter l'été 2027 : déposer `2027-06.txt` … `2027-09.txt` (format `jour;tn;tx`) dans `data/montsouris-raw/`,

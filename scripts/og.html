@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- Gabarit de l'aperçu de partage (img/og.png, 1200 × 630).
+     Ouvrir dans un navigateur à 1200 × 630 et faire une capture, ou : node scripts/build_og.js -->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Instrument+Sans:wght@500;600&family=IBM+Plex+Mono:wght@500&display=block">
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #0d1116; color: #e8edf2; font-family: "Instrument Sans", sans-serif; }
+  .og { position: relative; width: 1200px; height: 630px; box-sizing: border-box; padding: 64px 72px; display: grid; grid-template-rows: auto 1fr auto; }
+  .brand { display: flex; align-items: center; gap: 16px; font-family: Unbounded, sans-serif; font-weight: 800; font-size: 34px; letter-spacing: -0.02em; }
+  .mark { width: 20px; height: 38px; border-radius: 10px; background: linear-gradient(to top, #4b0b33, #a3133f 25%, #de4a22 50%, #f19a3e 72%, #efd37a); }
+  .pill { margin-left: auto; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; color: #95a2af; border: 1px solid #2a343e; border-radius: 99px; padding: 6px 16px; font-family: "Instrument Sans"; font-weight: 600; }
+  h1 { margin: 0; align-self: center; font-family: Unbounded, sans-serif; font-weight: 800; font-size: 76px; line-height: 1.04; letter-spacing: -0.04em; max-width: 900px; }
+  h1 span { background: linear-gradient(90deg, #f4a24a, #ff5f33 45%, #d0245a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  canvas { display: block; width: 1056px; height: 92px; border-radius: 10px; }
+  .foot { display: grid; gap: 14px; }
+  .foot p { margin: 0; font-size: 22px; color: #95a2af; }
+</style>
+</head>
+<body>
+<div class="og">
+  <div class="brand"><span class="mark"></span>Fournaise<span class="pill">Paris · score de chaleur</span></div>
+  <h1>Tu visites en novembre. <span>Tu dors en juillet.</span></h1>
+  <div class="foot">
+    <canvas id="c" width="2112" height="184"></canvas>
+    <p>Dix étés de nuits à Paris-Montsouris, 2017-2026. Combien de nuits étouffantes t'attendent ?</p>
+  </div>
+</div>
+<script src="../js/data-paris.js"></script>
+<script>
+  var P = [[44, 122, 138], [121, 180, 163], [239, 211, 122], [241, 154, 62], [222, 74, 34], [163, 19, 63], [75, 11, 51]];
+  var S = [[8, 0], [13, 1], [17, 2], [19.5, 3], [22, 4], [24, 5], [26, 6]];
+  function col(v) {
+    if (v <= S[0][0]) return P[0];
+    for (var i = 1; i < S.length; i++) if (v <= S[i][0]) {
+      var t = (v - S[i - 1][0]) / (S[i][0] - S[i - 1][0]), a = P[S[i - 1][1]], b = P[S[i][1]];
+      return a.map(function (x, k) { return Math.round(x + (b[k] - x) * t); });
+    }
+    return P[6];
+  }
+  var tn = window.FOURNAISE_DATA.climate.tn, c = document.getElementById("c"), x = c.getContext("2d");
+  var rows = tn.length, gap = 4, h = (c.height - gap * (rows - 1)) / rows, w = c.width / tn[0].length;
+  tn.forEach(function (row, i) { row.forEach(function (t, d) { x.fillStyle = "rgb(" + col(t) + ")"; x.fillRect(d * w, i * (h + gap), Math.ceil(w + 0.5), h); }); });
+</script>
+</body>
+</html>
