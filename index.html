@@ -6,6 +6,11 @@
 <title>Fournaise</title>
 <meta name="description" content="Le score de chaleur d'un logement parisien avant de le louer : nuits étouffantes, projection 2050 et conseils concrets.">
 <meta property="og:title" content="Fournaise · le score de chaleur de ton futur appart">
+<meta name="theme-color" content="#edf0f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1116" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="fr_FR">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='1' x2='0' y2='0'%3E%3Cstop offset='0' stop-color='%234b0b33'/%3E%3Cstop offset='.4' stop-color='%23de4a22'/%3E%3Cstop offset='1' stop-color='%23efd37a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='9' y='2' width='14' height='28' rx='7' fill='url(%23g)'/%3E%3C/svg%3E">
 <meta property="og:description" content="Tu visites en novembre. Tu dors en juillet. Combien de nuits étouffantes t'attendent ?">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,18 +25,36 @@
     <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Fournaise</a>
     <nav aria-label="Sections">
       <a href="#outil">Le score</a>
+      <a href="#etes">Tes étés</a>
       <a href="#conseils">Conseils</a>
       <a href="#methode">Méthode</a>
+      <a href="#faq">Questions</a>
     </nav>
     <span class="city-pill">Paris · bêta</span>
+    <button class="icon-btn" type="button" id="theme-btn" aria-label="Changer de thème clair ou sombre"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
   </div>
 </header>
 
 <main id="top">
   <section class="hero wrap">
-    <p class="eyebrow">Le score de chaleur d'un logement</p>
-    <h1>Tu visites en novembre. <span class="hot">Tu dors en juillet.</span></h1>
-    <p class="lede">Fournaise estime combien de nuits étouffantes t'attendent dans un appart avant que tu signes. Le calcul part de dix étés de relevés réels à Paris et de ce que tu sais du logement : étage, fenêtres, orientation.</p>
+    <div class="hero-text">
+      <p class="eyebrow">Le score de chaleur d'un logement</p>
+      <h1>Tu visites en novembre. <span class="hot">Tu dors en juillet.</span></h1>
+      <p class="lede">Fournaise estime combien de nuits étouffantes t'attendent dans un appart avant que tu signes. Le calcul part de dix étés de relevés réels à Paris et de ce que tu sais du logement : étage, fenêtres, orientation.</p>
+      <div class="hero-cta">
+        <a class="btn hot big" href="#outil">Calculer mon score</a>
+        <a class="btn ghost big" href="#methode">Voir la méthode</a>
+      </div>
+      <ul class="trust" aria-label="En bref">
+        <li><strong>10 étés</strong> de relevés Météo-France</li>
+        <li><strong>20</strong> arrondissements</li>
+        <li><strong>Gratuit</strong>, sans compte, rien n'est envoyé</li>
+      </ul>
+    </div>
+    <figure class="hero-fig">
+      <canvas id="hero-stripes" role="img" aria-label="Températures minimales de chaque nuit d'été à Paris-Montsouris, de 2017 à 2026"></canvas>
+      <figcaption>Chaque ligne est un été, chaque trait une nuit à Paris-Montsouris, de juin à septembre. Plus c'est foncé, plus la nuit est chaude.</figcaption>
+    </figure>
   </section>
 
   <section id="outil" class="tool wrap" aria-label="Calculer le score">
@@ -245,12 +268,25 @@
       </div>
     </div>
   </section>
+  <section class="wrap section" id="faq">
+    <div class="section-head">
+      <h2>Questions fréquentes</h2>
+    </div>
+    <div class="faq">
+      <details><summary>Pourquoi 26 °C dans la chambre ?</summary><p>Au-delà d'environ 26 °C, le corps n'arrive plus à baisser sa température pour s'endormir : le sommeil se fragmente. C'est le seuil retenu ici pour parler de nuit étouffante. Au-dessus de 28 °C, le sommeil devient franchement mauvais.</p></details>
+      <details><summary>Mes réponses sont-elles envoyées quelque part ?</summary><p>Non. Le calcul se fait entièrement dans ton navigateur. Seule la recherche d'adresse interroge la Base Adresse Nationale, un service public, avec le texte que tu tapes.</p></details>
+      <details><summary>Je ne connais pas les réponses, que faire ?</summary><p>Choisis « Je ne sais pas ». Le score est quand même calculé avec des valeurs moyennes, mais le niveau de confiance baisse et la fourchette s'élargit. La section « À demander pendant la visite » liste les questions qui comptent le plus.</p></details>
+      <details><summary>Et en dehors de Paris ?</summary><p>Pas encore. Chaque ville demande sa station météo et sa carte de chaleur. Lyon, Marseille et Toulouse sont les prochaines.</p></details>
+      <details><summary>Ce score remplace-t-il un diagnostic ?</summary><p>Non. C'est une estimation pour comparer des logements et savoir quoi demander. Elle ne remplace ni le DPE, ni une étude thermique réglementaire.</p></details>
+    </div>
+  </section>
 </main>
 
 <footer>
-  <div class="wrap">
-    <span>Fournaise · version 1 · Paris</span>
-    <span>Une estimation pour choisir son logement, pas un diagnostic thermique.</span>
+  <div class="wrap foot">
+    <div class="foot-brand"><span class="brand"><span class="brand-mark" aria-hidden="true"></span>Fournaise</span><p>Le score de chaleur de ton futur logement. Version 1, Paris.</p></div>
+    <nav class="foot-nav" aria-label="Pied de page"><a href="#outil">Le score</a><a href="#conseils">Conseils</a><a href="#methode">Méthode</a><a href="#faq">Questions</a><a href="https://github.com/aloysdeboissezon/Fournaise" target="_blank" rel="noopener">Code source</a></nav>
+    <p class="foot-note">Une estimation pour choisir son logement, pas un diagnostic thermique. Données : Météo-France (station Paris-Montsouris), Ville de Paris, IGN.</p>
   </div>
 </footer>
 <!-- BODY:END -->

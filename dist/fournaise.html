@@ -128,11 +128,20 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 @media (max-width: 620px) { .city-pill { display: none; } .topbar nav { gap: 14px; } }
 
 /* Ouverture */
-.hero { padding-block: 44px 28px; display: grid; gap: 16px; }
+.hero { padding-block: 56px 36px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 40px; align-items: center; }
+@media (max-width: 900px) { .hero { grid-template-columns: minmax(0, 1fr); padding-block: 36px 24px; gap: 28px; } }
+.hero-text { display: grid; gap: 18px; min-width: 0; }
 .eyebrow { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-.hero h1 { font-size: clamp(2rem, 6vw, 4.1rem); font-weight: 800; letter-spacing: -0.035em; max-width: 15ch; }
+.hero h1 { font-size: clamp(2.1rem, 5.4vw, 3.9rem); font-weight: 800; letter-spacing: -0.035em; }
 .hero h1 .hot { background: linear-gradient(90deg, var(--h3), var(--h4) 45%, var(--h5)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.lede { font-size: clamp(1.02rem, 1.6vw, 1.16rem); color: var(--muted); max-width: 62ch; }
+.lede { font-size: clamp(1.02rem, 1.6vw, 1.16rem); color: var(--muted); max-width: 58ch; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn.big { padding: 13px 22px; font-size: 1rem; border-radius: 10px; }
+.trust { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 0.88rem; color: var(--muted); }
+.trust strong { color: var(--ink); font-weight: 600; }
+.hero-fig { margin: 0; display: grid; gap: 10px; min-width: 0; }
+.hero-fig canvas { display: block; width: 100%; border-radius: var(--radius); border: 1px solid var(--line); box-shadow: var(--shadow); background: var(--surface); }
+.hero-fig figcaption { font-size: 0.8rem; color: var(--muted); max-width: 52ch; }
 
 /* Outil : formulaire + verdict */
 .tool { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; padding-bottom: 28px; }
@@ -330,8 +339,38 @@ td.num { text-align: right; white-space: nowrap; }
 .sources a { color: var(--ink); }
 .limits { display: grid; gap: 8px; font-size: 0.92rem; color: var(--muted); margin: 0; padding-left: 1.1rem; }
 
-footer { border-top: 1px solid var(--line); margin-top: 20px; }
-footer .wrap { padding-block: 26px 40px; display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 0.85rem; color: var(--muted); }
+footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--surface); }
+.foot { padding-block: 34px 44px; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px 40px; font-size: 0.88rem; color: var(--muted); }
+@media (max-width: 760px) { .foot { grid-template-columns: minmax(0, 1fr); } }
+.foot-brand { display: grid; gap: 8px; }
+.foot-brand .brand { color: var(--ink); }
+.foot-nav { display: flex; flex-wrap: wrap; gap: 8px 20px; align-content: start; justify-content: flex-start; }
+.foot-nav a { text-decoration: none; }
+.foot-nav a:hover { color: var(--ink); text-decoration: underline; }
+.foot-note { grid-column: 1 / -1; padding-top: 18px; border-top: 1px solid var(--line); font-size: 0.8rem; }
+
+/* Finitions */
+.icon-btn { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; flex: none; }
+.icon-btn:hover { border-color: var(--ink); }
+.topbar nav a { padding: 6px 2px; border-bottom: 2px solid transparent; }
+.topbar nav a:hover { border-bottom-color: var(--accent); }
+@media (max-width: 760px) { .topbar nav { display: none; } .city-pill { display: inline-block; margin-left: auto; } .icon-btn { margin-left: 0; } }
+.btn { transition: transform 0.12s, opacity 0.15s, border-color 0.15s, background 0.15s; }
+.btn:active { transform: translateY(1px); }
+.btn.hot:hover { opacity: 1; filter: brightness(1.07); }
+.tip-card { transition: transform 0.15s, box-shadow 0.15s; }
+.tip-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.faq { display: grid; gap: 10px; max-width: 78ch; }
+.faq details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0 16px; }
+.faq summary { cursor: pointer; font-weight: 600; padding: 14px 0; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--font-data); color: var(--muted); }
+.faq details[open] summary::after { content: "−"; }
+.faq details p { padding-bottom: 14px; color: var(--muted); font-size: 0.95rem; }
+.map-tip { position: absolute; z-index: 3; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 0.78rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 12px)); }
+.score { animation: pop 0.45s ease; }
+@keyframes pop { from { transform: scale(0.94); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@media (max-width: 520px) { .hero-cta .btn { flex: 1 1 100%; } .trust { flex-direction: column; gap: 4px; } }
 
 </style>
 <a class="skip" href="#outil">Aller directement à l'outil</a>
@@ -340,18 +379,36 @@ footer .wrap { padding-block: 26px 40px; display: flex; flex-wrap: wrap; gap: 10
     <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span>Fournaise</a>
     <nav aria-label="Sections">
       <a href="#outil">Le score</a>
+      <a href="#etes">Tes étés</a>
       <a href="#conseils">Conseils</a>
       <a href="#methode">Méthode</a>
+      <a href="#faq">Questions</a>
     </nav>
     <span class="city-pill">Paris · bêta</span>
+    <button class="icon-btn" type="button" id="theme-btn" aria-label="Changer de thème clair ou sombre"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
   </div>
 </header>
 
 <main id="top">
   <section class="hero wrap">
-    <p class="eyebrow">Le score de chaleur d'un logement</p>
-    <h1>Tu visites en novembre. <span class="hot">Tu dors en juillet.</span></h1>
-    <p class="lede">Fournaise estime combien de nuits étouffantes t'attendent dans un appart avant que tu signes. Le calcul part de dix étés de relevés réels à Paris et de ce que tu sais du logement : étage, fenêtres, orientation.</p>
+    <div class="hero-text">
+      <p class="eyebrow">Le score de chaleur d'un logement</p>
+      <h1>Tu visites en novembre. <span class="hot">Tu dors en juillet.</span></h1>
+      <p class="lede">Fournaise estime combien de nuits étouffantes t'attendent dans un appart avant que tu signes. Le calcul part de dix étés de relevés réels à Paris et de ce que tu sais du logement : étage, fenêtres, orientation.</p>
+      <div class="hero-cta">
+        <a class="btn hot big" href="#outil">Calculer mon score</a>
+        <a class="btn ghost big" href="#methode">Voir la méthode</a>
+      </div>
+      <ul class="trust" aria-label="En bref">
+        <li><strong>10 étés</strong> de relevés Météo-France</li>
+        <li><strong>20</strong> arrondissements</li>
+        <li><strong>Gratuit</strong>, sans compte, rien n'est envoyé</li>
+      </ul>
+    </div>
+    <figure class="hero-fig">
+      <canvas id="hero-stripes" role="img" aria-label="Températures minimales de chaque nuit d'été à Paris-Montsouris, de 2017 à 2026"></canvas>
+      <figcaption>Chaque ligne est un été, chaque trait une nuit à Paris-Montsouris, de juin à septembre. Plus c'est foncé, plus la nuit est chaude.</figcaption>
+    </figure>
   </section>
 
   <section id="outil" class="tool wrap" aria-label="Calculer le score">
@@ -565,12 +622,25 @@ footer .wrap { padding-block: 26px 40px; display: flex; flex-wrap: wrap; gap: 10
       </div>
     </div>
   </section>
+  <section class="wrap section" id="faq">
+    <div class="section-head">
+      <h2>Questions fréquentes</h2>
+    </div>
+    <div class="faq">
+      <details><summary>Pourquoi 26 °C dans la chambre ?</summary><p>Au-delà d'environ 26 °C, le corps n'arrive plus à baisser sa température pour s'endormir : le sommeil se fragmente. C'est le seuil retenu ici pour parler de nuit étouffante. Au-dessus de 28 °C, le sommeil devient franchement mauvais.</p></details>
+      <details><summary>Mes réponses sont-elles envoyées quelque part ?</summary><p>Non. Le calcul se fait entièrement dans ton navigateur. Seule la recherche d'adresse interroge la Base Adresse Nationale, un service public, avec le texte que tu tapes.</p></details>
+      <details><summary>Je ne connais pas les réponses, que faire ?</summary><p>Choisis « Je ne sais pas ». Le score est quand même calculé avec des valeurs moyennes, mais le niveau de confiance baisse et la fourchette s'élargit. La section « À demander pendant la visite » liste les questions qui comptent le plus.</p></details>
+      <details><summary>Et en dehors de Paris ?</summary><p>Pas encore. Chaque ville demande sa station météo et sa carte de chaleur. Lyon, Marseille et Toulouse sont les prochaines.</p></details>
+      <details><summary>Ce score remplace-t-il un diagnostic ?</summary><p>Non. C'est une estimation pour comparer des logements et savoir quoi demander. Elle ne remplace ni le DPE, ni une étude thermique réglementaire.</p></details>
+    </div>
+  </section>
 </main>
 
 <footer>
-  <div class="wrap">
-    <span>Fournaise · version 1 · Paris</span>
-    <span>Une estimation pour choisir son logement, pas un diagnostic thermique.</span>
+  <div class="wrap foot">
+    <div class="foot-brand"><span class="brand"><span class="brand-mark" aria-hidden="true"></span>Fournaise</span><p>Le score de chaleur de ton futur logement. Version 1, Paris.</p></div>
+    <nav class="foot-nav" aria-label="Pied de page"><a href="#outil">Le score</a><a href="#conseils">Conseils</a><a href="#methode">Méthode</a><a href="#faq">Questions</a><a href="https://github.com/aloysdeboissezon/Fournaise" target="_blank" rel="noopener">Code source</a></nav>
+    <p class="foot-note">Une estimation pour choisir son logement, pas un diagnostic thermique. Données : Météo-France (station Paris-Montsouris), Ville de Paris, IGN.</p>
   </div>
 </footer>
 <script>
@@ -1937,9 +2007,60 @@ window.FOURNAISE_DATA.arrondissements = [{"n":1,"name":"Louvre","rings":[[[2.320
     });
   }
 
+  var HERO_STOPS = [[8, 0], [13, 1], [17, 2], [19.5, 3], [22, 4], [24, 5], [26, 6]];
+  function renderHero() {
+    var canvas = $("hero-stripes");
+    if (!canvas) return;
+    var W = Math.max(280, canvas.parentNode.clientWidth), rows = D.climate.tn.length, rowH = 18, gap = 3, pad = 14, labelW = 34;
+    var H = pad * 2 + rows * (rowH + gap) - gap;
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); canvas.style.height = H + "px";
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var cw = (W - pad * 2 - labelW) / 122;
+    ctx.font = "500 11px " + cssVar("--font-data"); ctx.fillStyle = cssVar("--muted"); ctx.textBaseline = "middle";
+    D.climate.tn.forEach(function (row, i) {
+      var y = pad + i * (rowH + gap);
+      ctx.fillStyle = cssVar("--muted"); ctx.fillText("'" + String(D.climate.years[i]).slice(2), pad, y + rowH / 2);
+      row.forEach(function (t, d) {
+        ctx.fillStyle = rgb(ramp(HERO_STOPS, t));
+        ctx.fillRect(pad + labelW + d * cw, y, Math.ceil(cw + 0.4), rowH);
+      });
+    });
+  }
+
+  function wireTheme() {
+    var btn = $("theme-btn"), root = document.documentElement;
+    try { var saved = localStorage.getItem("fournaise-theme"); if (saved === "light" || saved === "dark") root.setAttribute("data-theme", saved); } catch (e) {}
+    btn.addEventListener("click", function () {
+      var dark = root.getAttribute("data-theme") === "dark" || (!root.getAttribute("data-theme") && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      var next = dark ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("fournaise-theme", next); } catch (e) {}
+    });
+  }
+
+  function wireMapTip() {
+    var svg = $("map"), box = svg.parentNode, tip = document.createElement("div");
+    tip.className = "map-tip"; tip.hidden = true; box.appendChild(tip);
+    svg.addEventListener("mousemove", function (ev) {
+      var rect = svg.getBoundingClientRect();
+      var ll = unproject(((ev.clientX - rect.left) / rect.width) * MAP_W, ((ev.clientY - rect.top) / rect.height) * MAP_H);
+      var arr = M.arrondissementAt(ll[0], ll[1], ARRS);
+      if (!arr) { tip.hidden = true; return; }
+      var d = M.localHeat(ll[0], ll[1], ARRS).delta;
+      tip.textContent = "Paris " + arrName(arr.n) + " · " + (d >= 0 ? "+" : "−") + fr(Math.abs(d), 1) + " °C la nuit";
+      tip.style.left = (ev.clientX - box.getBoundingClientRect().left) + "px";
+      tip.style.top = (ev.clientY - box.getBoundingClientRect().top) + "px";
+      tip.hidden = false;
+    });
+    svg.addEventListener("mouseleave", function () { tip.hidden = true; });
+  }
+
   function onThemeChange() {
     readPalette();
     refreshMapHeat();
+    renderHero();
     if (state.result) update();
   }
 
@@ -1961,6 +2082,9 @@ window.FOURNAISE_DATA.arrondissements = [{"n":1,"name":"Louvre","rings":[[[2.320
     wireStripes();
     wireShare();
     renderCoefTable();
+    wireTheme();
+    wireMapTip();
+    renderHero();
     loadExample("bonne");
 
     var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
@@ -1969,10 +2093,12 @@ window.FOURNAISE_DATA.arrondissements = [{"n":1,"name":"Louvre","rings":[[[2.320
     var lastW = 0;
     var onResize = function () {
       var w = $("stripes-wrap").clientWidth;
+      renderHero();
       if (w !== lastW && state.result) { lastW = w; renderStripes(state.result); }
     };
     if (window.ResizeObserver) new ResizeObserver(onResize).observe($("stripes-wrap"));
     else window.addEventListener("resize", onResize);
+    window.addEventListener("resize", renderHero);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (state.result) renderStripes(state.result); });
   }
 

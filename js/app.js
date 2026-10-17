@@ -805,9 +805,60 @@
     });
   }
 
+  var HERO_STOPS = [[8, 0], [13, 1], [17, 2], [19.5, 3], [22, 4], [24, 5], [26, 6]];
+  function renderHero() {
+    var canvas = $("hero-stripes");
+    if (!canvas) return;
+    var W = Math.max(280, canvas.parentNode.clientWidth), rows = D.climate.tn.length, rowH = 18, gap = 3, pad = 14, labelW = 34;
+    var H = pad * 2 + rows * (rowH + gap) - gap;
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); canvas.style.height = H + "px";
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var cw = (W - pad * 2 - labelW) / 122;
+    ctx.font = "500 11px " + cssVar("--font-data"); ctx.fillStyle = cssVar("--muted"); ctx.textBaseline = "middle";
+    D.climate.tn.forEach(function (row, i) {
+      var y = pad + i * (rowH + gap);
+      ctx.fillStyle = cssVar("--muted"); ctx.fillText("'" + String(D.climate.years[i]).slice(2), pad, y + rowH / 2);
+      row.forEach(function (t, d) {
+        ctx.fillStyle = rgb(ramp(HERO_STOPS, t));
+        ctx.fillRect(pad + labelW + d * cw, y, Math.ceil(cw + 0.4), rowH);
+      });
+    });
+  }
+
+  function wireTheme() {
+    var btn = $("theme-btn"), root = document.documentElement;
+    try { var saved = localStorage.getItem("fournaise-theme"); if (saved === "light" || saved === "dark") root.setAttribute("data-theme", saved); } catch (e) {}
+    btn.addEventListener("click", function () {
+      var dark = root.getAttribute("data-theme") === "dark" || (!root.getAttribute("data-theme") && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      var next = dark ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("fournaise-theme", next); } catch (e) {}
+    });
+  }
+
+  function wireMapTip() {
+    var svg = $("map"), box = svg.parentNode, tip = document.createElement("div");
+    tip.className = "map-tip"; tip.hidden = true; box.appendChild(tip);
+    svg.addEventListener("mousemove", function (ev) {
+      var rect = svg.getBoundingClientRect();
+      var ll = unproject(((ev.clientX - rect.left) / rect.width) * MAP_W, ((ev.clientY - rect.top) / rect.height) * MAP_H);
+      var arr = M.arrondissementAt(ll[0], ll[1], ARRS);
+      if (!arr) { tip.hidden = true; return; }
+      var d = M.localHeat(ll[0], ll[1], ARRS).delta;
+      tip.textContent = "Paris " + arrName(arr.n) + " · " + (d >= 0 ? "+" : "−") + fr(Math.abs(d), 1) + " °C la nuit";
+      tip.style.left = (ev.clientX - box.getBoundingClientRect().left) + "px";
+      tip.style.top = (ev.clientY - box.getBoundingClientRect().top) + "px";
+      tip.hidden = false;
+    });
+    svg.addEventListener("mouseleave", function () { tip.hidden = true; });
+  }
+
   function onThemeChange() {
     readPalette();
     refreshMapHeat();
+    renderHero();
     if (state.result) update();
   }
 
@@ -829,6 +880,9 @@
     wireStripes();
     wireShare();
     renderCoefTable();
+    wireTheme();
+    wireMapTip();
+    renderHero();
     loadExample("bonne");
 
     var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
@@ -837,10 +891,12 @@
     var lastW = 0;
     var onResize = function () {
       var w = $("stripes-wrap").clientWidth;
+      renderHero();
       if (w !== lastW && state.result) { lastW = w; renderStripes(state.result); }
     };
     if (window.ResizeObserver) new ResizeObserver(onResize).observe($("stripes-wrap"));
     else window.addEventListener("resize", onResize);
+    window.addEventListener("resize", renderHero);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (state.result) renderStripes(state.result); });
   }
 
