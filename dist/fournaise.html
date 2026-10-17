@@ -125,7 +125,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .topbar-in { display: flex; align-items: center; gap: 20px; padding-block: 12px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 1.12rem; text-decoration: none; letter-spacing: -0.02em; }
-.brand-mark { width: 14px; height: 26px; border-radius: 7px; background: linear-gradient(to top, var(--h6), var(--h5) 25%, var(--h4) 50%, var(--h3) 72%, var(--h2)); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink) 12%, transparent); }
+.brand-mark { flex: none; width: 24px; height: 28px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CclipPath id='f'%3E%3Cpath d='M16 2.2c2.3 4.9 8.6 8.2 8.6 16.8 0 5.8-3.8 10.2-8.6 10.2S7.4 24.8 7.4 19c0-3.7 1.8-5.9 3.6-7.9.3 2.5 1.4 3.9 2.8 4.5-.7-4.2 0-9.4 2.2-13.4z'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg clip-path='url(%23f)'%3E%3Crect x='0' y='0' width='32' height='9.4' fill='%23efd37a'/%3E%3Crect x='0' y='10' width='32' height='5' fill='%23f19a3e'/%3E%3Crect x='0' y='15.6' width='32' height='5' fill='%23de4a22'/%3E%3Crect x='0' y='21.2' width='32' height='4.2' fill='%23a3133f'/%3E%3Crect x='0' y='26' width='32' height='5' fill='%234b0b33'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat; transition: transform 0.3s; }
+.brand:hover .brand-mark { animation: flicker 0.9s ease-in-out; }
+@keyframes flicker { 0%,100% { transform: none; } 25% { transform: scale(1.08, 0.94) rotate(-3deg); } 60% { transform: scale(0.95, 1.08) rotate(3deg); } }
 .topbar nav { display: flex; gap: 18px; margin-left: auto; font-size: 0.94rem; }
 .topbar nav a { text-decoration: none; color: var(--muted); }
 .topbar nav a:hover { color: var(--ink); }
@@ -657,6 +659,31 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 .al-day { color: var(--muted); font-size: 0.74rem; text-align: center; }
 @media (max-width: 420px) { .al-bars i { width: 7px; } .al-days { gap: 2px; } }
 
+/* ---- Identité : ciel de Paris, mouvements, finitions ---- */
+:root { --sk-b: color-mix(in srgb, var(--ink) 16%, var(--bg)); --sk-r: color-mix(in srgb, var(--ink) 34%, var(--bg)); --sk-w: color-mix(in srgb, var(--ink) 8%, var(--bg)); }
+.skyline { position: relative; height: clamp(70px, 11vw, 130px); overflow: hidden; margin-top: 8px; pointer-events: none; }
+.skyline-svg { position: absolute; left: 50%; bottom: 0; width: max(100%, 1200px); height: 100%; transform: translateX(-50%); }
+.skyline .b, .skyline .c { fill: var(--sk-b); }
+.skyline .r, .skyline .d { fill: var(--sk-r); }
+.skyline .w { fill: var(--sk-w); }
+:root[data-theme="dark"] .skyline .w { fill: var(--h3); opacity: 0.55; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .skyline .w { fill: var(--h3); opacity: 0.55; } }
+.skyline .sun { opacity: 0.9; animation: sun-rise 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.skyline .shimmer { fill: none; stroke: var(--h3); stroke-width: 2; stroke-linecap: round; opacity: 0.4; animation: shimmer 6s ease-in-out infinite alternate; }
+@keyframes shimmer { from { transform: translateX(-24px); } to { transform: translateX(24px); } }
+@keyframes sun-rise { from { transform: translateY(70px); opacity: 0; } to { transform: none; opacity: 0.9; } }
+.hero-fig canvas { animation: sweep 1.5s cubic-bezier(0.3, 0.6, 0.2, 1) 0.2s both; }
+@keyframes sweep { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.hero-text > * { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.hero-text > *:nth-child(2) { animation-delay: 0.08s; } .hero-text > *:nth-child(3) { animation-delay: 0.16s; } .hero-text > *:nth-child(4) { animation-delay: 0.24s; } .hero-text > *:nth-child(5) { animation-delay: 0.32s; }
+.rv { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.rv.rv-in { opacity: 1; transform: none; }
+.card, .btn, .examples button, .wz-opt { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.15s, background 0.15s, opacity 0.15s; }
+.btn:not(:disabled):hover { transform: translateY(-1px); }
+.btn:not(:disabled):active { transform: translateY(0) scale(0.98); }
+.tip-card:hover, .cmp-card:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(20, 30, 40, 0.08), 0 14px 32px rgba(20, 30, 40, 0.1); }
+.foot-brand .brand-mark { width: 26px; height: 30px; }
+
 </style>
 <noscript><p class="noscript">Fournaise calcule le score dans ton navigateur : active JavaScript pour l'utiliser.</p></noscript>
 <a class="skip" href="#outil">Aller directement à l'outil</a>
@@ -697,6 +724,8 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
       <figcaption>Chaque ligne est un été, chaque trait une nuit à Paris-Montsouris, de juin à septembre. Plus c'est foncé, plus la nuit est chaude.</figcaption>
     </figure>
   </section>
+
+  <div class="skyline" id="skyline" aria-hidden="true"></div>
 
   <section id="outil" class="tool wrap" aria-label="Calculer le score">
     <form id="form" class="panel form" novalidate>
@@ -3212,6 +3241,9 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
   var format = "story";
   var FONT_D = "Unbounded, 'Arial Black', sans-serif", FONT_B = "'Instrument Sans', 'Segoe UI', sans-serif";
   var drawTimer = null;
+  // La flamme de img/logo.svg : contour puis bandes de la plus chaude (haut) à la plus sombre (bas).
+  var FLAME = new Path2D("M16 2.2c2.3 4.9 8.6 8.2 8.6 16.8 0 5.8-3.8 10.2-8.6 10.2S7.4 24.8 7.4 19c0-3.7 1.8-5.9 3.6-7.9.3 2.5 1.4 3.9 2.8 4.5-.7-4.2 0-9.4 2.2-13.4z");
+  var BANDS = [[0, 9.4, "#efd37a"], [10, 5, "#f19a3e"], [15.6, 5, "#de4a22"], [21.2, 4.2, "#a3133f"], [26, 5, "#4b0b33"]];
 
   // Découpe un texte en lignes qui tiennent dans maxW (la police du contexte doit déjà être réglée).
   function wrap(ctx, text, maxW) {
@@ -3245,12 +3277,15 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
     ctx.fillStyle = shade; ctx.fillRect(0, 0, W, H);
 
     var X = 84, top = tall ? 150 : 110;
-    // Marque : la pastille-thermomètre et le nom
-    var mg = ctx.createLinearGradient(0, top + 10, 0, top - 56);
-    ["#4b0b33", "#a3133f", "#de4a22", "#f19a3e", "#efd37a"].forEach(function (col, i) { mg.addColorStop(i / 4, col); });
-    ctx.fillStyle = mg; pill(ctx, X, top - 56, 26, 58, 13); ctx.fill();
+    // Marque : la flamme en bandes (comme img/logo.svg) et le nom
+    var k = 2.1;
+    ctx.save();
+    ctx.translate(X - 7.4 * k, top - 64 - 2.2 * k); ctx.scale(k, k);
+    ctx.clip(FLAME);
+    BANDS.forEach(function (bd) { ctx.fillStyle = bd[2]; ctx.fillRect(0, bd[0], 32, bd[1]); });
+    ctx.restore();
     ctx.fillStyle = "#fff"; ctx.textBaseline = "alphabetic";
-    ctx.font = "800 54px " + FONT_D; ctx.fillText("fournaise", X + 46, top - 6);
+    ctx.font = "800 54px " + FONT_D; ctx.fillText("fournaise", X + 56, top - 8);
 
     // Score
     var y = top + (tall ? 150 : 110);
@@ -3825,6 +3860,55 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
     checkOnOpen(false);
   }
   wire();
+})();
+
+</script>
+<script>
+/* Fournaise — finitions : les sections apparaissent en douceur quand on arrive dessus. Sans effet si le navigateur ne sait pas observer
+   ou si l'utilisateur réduit les animations : tout reste visible. */
+(function () {
+  "use strict";
+  // Le ciel de Paris sous le bandeau d'accueil : toits de zinc, lucarnes, cheminées et un soleil qui se lève.
+  // Dessiné par le code (graine fixe, donc toujours le même) pour ne rien ajouter au poids de la page.
+  function skyline() {
+    var box = document.getElementById("skyline");
+    if (!box) return;
+    var seed = 7, W = 1200, H = 150, x = -10, out = "";
+    var rnd = function () { seed = (seed + 0x6d2b79f5) | 0; var t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    var pick = function (a) { return a[Math.floor(rnd() * a.length)]; };
+    while (x < W) {
+      var w = pick([56, 64, 72, 80, 92]), h = pick([44, 52, 60, 68, 76, 88]), top = H - h, rh = pick([18, 22, 26]);
+      out += '<rect x="' + x + '" y="' + top + '" width="' + w + '" height="' + h + '" class="b"/><path d="M' + x + " " + top + "h" + w + "l-8 -" + rh + "h-" + (w - 16) + 'z" class="r"/>';
+      var nd = Math.max(1, Math.floor((w - 24) / 28)), step = Math.floor((w - 28) / nd);
+      for (var d = 0; d < nd; d++) out += '<path d="M' + (x + 14 + d * step + Math.floor(step / 2) - 4) + " " + (top - 4) + 'v-7h8v7z" class="d"/>';
+      if (rnd() < 0.6) out += '<rect x="' + (x + 10 + Math.floor(rnd() * (w - 28))) + '" y="' + (top - rh - 9) + '" width="5" height="9" class="c"/>';
+      for (var row = 0, rows = pick([2, 3, 4]); row < rows; row++) {
+        var wy = top + 10 + row * 16;
+        if (wy > H - 12) break;
+        for (var col = 0; col < Math.max(2, Math.floor(w / 22)); col++) { var wx = x + 8 + col * 18; if (wx + 6 < x + w - 4) out += '<rect x="' + wx + '" y="' + wy + '" width="6" height="9" class="w"/>'; }
+      }
+      x += w + pick([0, 0, 2]);
+    }
+    var wave = function (y) { return '<path d="M0 ' + y + "q50 -12 100 0" + "t100 0".repeat(12) + '"/>'; };
+    box.innerHTML = '<svg class="skyline-svg" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="xMidYMax slice" focusable="false"><defs><linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--h2)"/><stop offset="1" stop-color="var(--h4)"/></linearGradient></defs>' +
+      '<circle cx="880" cy="70" r="62" fill="url(#sun)" class="sun"/><g class="shimmer">' + wave(40) + wave(58) + "</g>" + out + "</svg>";
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", skyline); else skyline();
+
+  if (!window.IntersectionObserver || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+  var targets = Array.prototype.slice.call(document.querySelectorAll("main .section, .method .card"));
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("rv-in"); io.unobserve(e.target); } });
+  }, { rootMargin: "0px 0px -8% 0px", threshold: 0.04 });
+  targets.forEach(function (el) {
+    // Ce qui est déjà à l'écran (ou au-dessus) n'est pas masqué : pas de clignotement au chargement ni sur un lien d'ancre.
+    if (el.getBoundingClientRect().top < window.innerHeight * 0.95) return;
+    el.classList.add("rv");
+    io.observe(el);
+  });
+  // Une ancre (#conseils…) ou l'impression révèle tout de suite ce qui était masqué.
+  window.addEventListener("hashchange", function () { document.querySelectorAll(".rv:not(.rv-in)").forEach(function (el) { el.classList.add("rv-in"); }); });
+  window.addEventListener("beforeprint", function () { document.querySelectorAll(".rv").forEach(function (el) { el.classList.add("rv-in"); }); });
 })();
 
 </script>

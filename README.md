@@ -64,7 +64,7 @@ scripts/build_dpe.py       regroupe les DPE par adresse
 scripts/build_data.py      régénère js/data-paris.js à partir de data/
 scripts/build_artifact.py  produit dist/fournaise.html
 scripts/build_pages.py     génère les pages de texte, la 404, robots.txt et sitemap.xml
-scripts/build_icons.py     dessine les icônes (favicon, écran d'accueil) dans img/
+scripts/build_icons.js     dessine les icônes (écran d'accueil, PWA) dans img/ à partir de img/logo.svg
 scripts/og.html, build_og.js   aperçu de partage img/og.png (1200 × 630) : node scripts/build_og.js
 site.webmanifest           installation sur l'écran d'accueil (nom, couleurs, icônes)
 ```
@@ -135,6 +135,14 @@ python3 scripts/build_artifact.py       # dist/fournaise.html
 
 Les services publics coupent souvent les longues réponses : les scripts réessaient. Landsat demande `rasterio` et
 `pyproj` (`pip install rasterio pyproj`).
+
+## Identité visuelle
+
+Le logo est une flamme coupée en cinq bandes, comme les rayures des étés du bandeau d'accueil (`img/logo.svg`, favicon et icônes dérivés).
+Les couleurs sont l'échelle de chaleur qui porte tout le sens du site : eau de Seine `#2c7a8a`, sauge `#79b4a3`, sable `#efd37a`, braise `#f19a3e`,
+brique `#de4a22`, grenat `#a3133f`, lie-de-vin `#4b0b33`, sur un fond zinc `#edf0f2` (clair) ou `#0d1116` (sombre). Titres en Unbounded, texte en Instrument Sans,
+chiffres en IBM Plex Mono. Le ciel de Paris sous le bandeau est dessiné par `js/polish.js`. Les animations (apparition des sections, bandeau qui se dévoile,
+résultat compté à rebours) s'éteignent avec « réduire les animations » du système.
 
 ## Alerte canicule
 

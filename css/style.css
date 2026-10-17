@@ -118,7 +118,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .topbar-in { display: flex; align-items: center; gap: 20px; padding-block: 12px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 1.12rem; text-decoration: none; letter-spacing: -0.02em; }
-.brand-mark { width: 14px; height: 26px; border-radius: 7px; background: linear-gradient(to top, var(--h6), var(--h5) 25%, var(--h4) 50%, var(--h3) 72%, var(--h2)); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ink) 12%, transparent); }
+.brand-mark { flex: none; width: 24px; height: 28px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3CclipPath id='f'%3E%3Cpath d='M16 2.2c2.3 4.9 8.6 8.2 8.6 16.8 0 5.8-3.8 10.2-8.6 10.2S7.4 24.8 7.4 19c0-3.7 1.8-5.9 3.6-7.9.3 2.5 1.4 3.9 2.8 4.5-.7-4.2 0-9.4 2.2-13.4z'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg clip-path='url(%23f)'%3E%3Crect x='0' y='0' width='32' height='9.4' fill='%23efd37a'/%3E%3Crect x='0' y='10' width='32' height='5' fill='%23f19a3e'/%3E%3Crect x='0' y='15.6' width='32' height='5' fill='%23de4a22'/%3E%3Crect x='0' y='21.2' width='32' height='4.2' fill='%23a3133f'/%3E%3Crect x='0' y='26' width='32' height='5' fill='%234b0b33'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat; transition: transform 0.3s; }
+.brand:hover .brand-mark { animation: flicker 0.9s ease-in-out; }
+@keyframes flicker { 0%,100% { transform: none; } 25% { transform: scale(1.08, 0.94) rotate(-3deg); } 60% { transform: scale(0.95, 1.08) rotate(3deg); } }
 .topbar nav { display: flex; gap: 18px; margin-left: auto; font-size: 0.94rem; }
 .topbar nav a { text-decoration: none; color: var(--muted); }
 .topbar nav a:hover { color: var(--ink); }
@@ -649,3 +651,28 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 .al-bars i { display: block; width: 9px; border-radius: 3px 3px 0 0; }
 .al-day { color: var(--muted); font-size: 0.74rem; text-align: center; }
 @media (max-width: 420px) { .al-bars i { width: 7px; } .al-days { gap: 2px; } }
+
+/* ---- Identité : ciel de Paris, mouvements, finitions ---- */
+:root { --sk-b: color-mix(in srgb, var(--ink) 16%, var(--bg)); --sk-r: color-mix(in srgb, var(--ink) 34%, var(--bg)); --sk-w: color-mix(in srgb, var(--ink) 8%, var(--bg)); }
+.skyline { position: relative; height: clamp(70px, 11vw, 130px); overflow: hidden; margin-top: 8px; pointer-events: none; }
+.skyline-svg { position: absolute; left: 50%; bottom: 0; width: max(100%, 1200px); height: 100%; transform: translateX(-50%); }
+.skyline .b, .skyline .c { fill: var(--sk-b); }
+.skyline .r, .skyline .d { fill: var(--sk-r); }
+.skyline .w { fill: var(--sk-w); }
+:root[data-theme="dark"] .skyline .w { fill: var(--h3); opacity: 0.55; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .skyline .w { fill: var(--h3); opacity: 0.55; } }
+.skyline .sun { opacity: 0.9; animation: sun-rise 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.skyline .shimmer { fill: none; stroke: var(--h3); stroke-width: 2; stroke-linecap: round; opacity: 0.4; animation: shimmer 6s ease-in-out infinite alternate; }
+@keyframes shimmer { from { transform: translateX(-24px); } to { transform: translateX(24px); } }
+@keyframes sun-rise { from { transform: translateY(70px); opacity: 0; } to { transform: none; opacity: 0.9; } }
+.hero-fig canvas { animation: sweep 1.5s cubic-bezier(0.3, 0.6, 0.2, 1) 0.2s both; }
+@keyframes sweep { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.hero-text > * { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.hero-text > *:nth-child(2) { animation-delay: 0.08s; } .hero-text > *:nth-child(3) { animation-delay: 0.16s; } .hero-text > *:nth-child(4) { animation-delay: 0.24s; } .hero-text > *:nth-child(5) { animation-delay: 0.32s; }
+.rv { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.rv.rv-in { opacity: 1; transform: none; }
+.card, .btn, .examples button, .wz-opt { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.15s, background 0.15s, opacity 0.15s; }
+.btn:not(:disabled):hover { transform: translateY(-1px); }
+.btn:not(:disabled):active { transform: translateY(0) scale(0.98); }
+.tip-card:hover, .cmp-card:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(20, 30, 40, 0.08), 0 14px 32px rgba(20, 30, 40, 0.1); }
+.foot-brand .brand-mark { width: 26px; height: 30px; }

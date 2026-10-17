@@ -8,6 +8,9 @@
   var format = "story";
   var FONT_D = "Unbounded, 'Arial Black', sans-serif", FONT_B = "'Instrument Sans', 'Segoe UI', sans-serif";
   var drawTimer = null;
+  // La flamme de img/logo.svg : contour puis bandes de la plus chaude (haut) à la plus sombre (bas).
+  var FLAME = new Path2D("M16 2.2c2.3 4.9 8.6 8.2 8.6 16.8 0 5.8-3.8 10.2-8.6 10.2S7.4 24.8 7.4 19c0-3.7 1.8-5.9 3.6-7.9.3 2.5 1.4 3.9 2.8 4.5-.7-4.2 0-9.4 2.2-13.4z");
+  var BANDS = [[0, 9.4, "#efd37a"], [10, 5, "#f19a3e"], [15.6, 5, "#de4a22"], [21.2, 4.2, "#a3133f"], [26, 5, "#4b0b33"]];
 
   // Découpe un texte en lignes qui tiennent dans maxW (la police du contexte doit déjà être réglée).
   function wrap(ctx, text, maxW) {
@@ -41,12 +44,15 @@
     ctx.fillStyle = shade; ctx.fillRect(0, 0, W, H);
 
     var X = 84, top = tall ? 150 : 110;
-    // Marque : la pastille-thermomètre et le nom
-    var mg = ctx.createLinearGradient(0, top + 10, 0, top - 56);
-    ["#4b0b33", "#a3133f", "#de4a22", "#f19a3e", "#efd37a"].forEach(function (col, i) { mg.addColorStop(i / 4, col); });
-    ctx.fillStyle = mg; pill(ctx, X, top - 56, 26, 58, 13); ctx.fill();
+    // Marque : la flamme en bandes (comme img/logo.svg) et le nom
+    var k = 2.1;
+    ctx.save();
+    ctx.translate(X - 7.4 * k, top - 64 - 2.2 * k); ctx.scale(k, k);
+    ctx.clip(FLAME);
+    BANDS.forEach(function (bd) { ctx.fillStyle = bd[2]; ctx.fillRect(0, bd[0], 32, bd[1]); });
+    ctx.restore();
     ctx.fillStyle = "#fff"; ctx.textBaseline = "alphabetic";
-    ctx.font = "800 54px " + FONT_D; ctx.fillText("fournaise", X + 46, top - 6);
+    ctx.font = "800 54px " + FONT_D; ctx.fillText("fournaise", X + 56, top - 8);
 
     // Score
     var y = top + (tall ? 150 : 110);
