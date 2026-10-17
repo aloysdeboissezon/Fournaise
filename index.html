@@ -301,11 +301,15 @@
   </section>
 
   <section class="wrap section" id="comparer" hidden>
-    <div class="section-head">
-      <h2>Tes logements gardés pour comparer</h2>
-      <p>Gardés dans ce navigateur seulement, jusqu'à trois. Le plus frais est signalé.</p>
+    <div class="section-head row">
+      <div>
+        <h2>Tes logements côte à côte</h2>
+        <p id="cmp-summary" role="status"></p>
+      </div>
+      <a class="btn ghost" id="cmp-add" href="#outil">Ajouter un logement</a>
     </div>
-    <div class="card"><div class="tbl-wrap"><table id="cmp-table"></table></div></div>
+    <div class="cmp" id="cmp"></div>
+    <p class="caption">Gardés dans ce navigateur seulement, jusqu'à trois. Le plus frais est celui qui a le score le plus bas.</p>
   </section>
 
   <div class="wrap"><hr class="rule"></div>

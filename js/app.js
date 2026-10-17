@@ -1066,10 +1066,10 @@
   // 2050 ---------------------------------------------------------------------
   function renderFuture(r) {
     $("f-now").innerHTML = nights(r.n26) + ' <small style="font-size:.4em;font-weight:600;color:var(--muted)">' + plural(r.n26, "nuit", "nuits") + "</small>";
-    $("f-now").style.color = scoreColor(Math.min(r.score, 9.2));
+    $("f-now").style.color = "color-mix(in srgb, " + scoreColor(Math.min(r.score, 9.2)) + " 80%, var(--ink))";
     $("f-now-s").textContent = "score " + r.scoreRounded + "/10 · " + r.verdict.label.toLowerCase();
     $("f-2050").innerHTML = nights(r.y2050.n26) + ' <small style="font-size:.4em;font-weight:600;color:var(--muted)">' + plural(r.y2050.n26, "nuit", "nuits") + "</small>";
-    $("f-2050").style.color = scoreColor(Math.min(r.y2050.score, 9.2));
+    $("f-2050").style.color = "color-mix(in srgb, " + scoreColor(Math.min(r.y2050.score, 9.2)) + " 80%, var(--ink))";
     $("f-2050-s").textContent = "score " + r.y2050.scoreRounded + "/10 · entre " + nights(r.y2050.range[0]) + " et " + nights(r.y2050.range[1]) + " nuits";
     var lines = [
       ["Aujourd'hui", r.n26, r.score],
@@ -1267,30 +1267,37 @@
     var sec = $("comparer");
     sec.hidden = !compareList.length;
     if (!compareList.length) return;
-    var best = compareList.length > 1 ? compareList.reduce(function (b, x, i) { return x.s < compareList[b].s ? i : b; }, 0) : -1;
-    var head = '<thead><tr><th scope="col"><span class="sr-only">Critère</span></th>' + compareList.map(function (x, i) {
-      return '<th scope="col" class="cmp-col' + (i === best ? " best" : "") + '"><span class="cmp-name">' + escapeHtml(x.label) + "</span>" +
-        (i === best ? '<span class="badge b-mes">Le plus frais</span>' : "") +
-        '<span class="cmp-acts"><a href="' + escapeHtml(x.q) + '">Rouvrir</a> · <button type="button" class="linklike" data-remove="' + i + '">Retirer</button></span></th>';
-    }).join("") + "</tr></thead>";
-    var rows = [
-      ["Score", function (x) { return x.score + "/10 · " + x.verdict; }],
-      ["Nuits étouffantes par été", function (x) { return x.n26 + " (dont " + x.n28 + " au-dessus de 28 °C)"; }],
-      ["En 2050", function (x) { return x.n2050 + " nuits · " + x.s2050 + "/10"; }],
-      ["Quartier, la nuit", function (x) { return (x.delta >= 0 ? "+" : "−") + fr(Math.abs(x.delta), 1) + " °C vs Montsouris"; }],
-      ["Logement", function (x) { return x.traits.map(escapeHtml).join("<br>"); }],
-      ["Confiance", function (x) { return x.conf; }]
-    ];
-    $("cmp-table").innerHTML = '<caption class="sr-only">Comparaison des logements gardés</caption>' + head + "<tbody>" + rows.map(function (r) {
-      return '<tr><th scope="row">' + r[0] + "</th>" + compareList.map(function (x) { return "<td>" + (r[0] === "Logement" ? r[1](x) : escapeHtml(r[1](x))) + "</td>"; }).join("") + "</tr>";
-    }).join("") + "</tbody>";
+    var n = compareList.length;
+    var best = n > 1 ? compareList.reduce(function (b, x, i) { return x.s < compareList[b].s || (x.s === compareList[b].s && x.n26 < compareList[b].n26) ? i : b; }, 0) : -1;
+    var worst = n > 1 ? compareList.reduce(function (w, x, i) { return x.s > compareList[w].s ? i : w; }, 0) : -1;
+    var max26 = Math.max.apply(null, compareList.map(function (x) { return Math.max(x.n26, x.n2050); })) || 1;
+    var summary = "";
+    if (n === 1) summary = "Un seul logement gardé. Ajoute-en un autre pour voir lequel passe l'été le mieux.";
+    else if (compareList[best].n26 === compareList[worst].n26) summary = "Ces logements ont autant de nuits étouffantes par été : départage-les avec les conseils et les questions à poser.";
+    else summary = compareList[best].label + " passe l'été le mieux : " + (compareList[worst].n26 - compareList[best].n26) + " nuits étouffantes de moins par été que " + compareList[worst].label + " (" + compareList[best].n26 + " contre " + compareList[worst].n26 + ").";
+    $("cmp-summary").textContent = summary;
+    var bar = function (v, s) {
+      return '<span class="cmp-track"><span class="cmp-fill" style="width:' + Math.max(2, (v / max26) * 100).toFixed(1) + "%;background:" + scoreColor(Math.min(s, 9.2)) + '"></span></span>';
+    };
+    $("cmp").innerHTML = compareList.map(function (x, i) {
+      var win = i === best, gap = best >= 0 && !win ? x.n26 - compareList[best].n26 : 0;
+      return '<article class="cmp-card' + (win ? " winner" : "") + '" style="--c:' + scoreColor(Math.min(x.s, 9.2)) + '" aria-label="' + escapeHtml(x.label) + '">' +
+        (win ? '<span class="cmp-crown"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 17l-1-9 5 4 4-7 4 7 5-4-1 9z" fill="currentColor"/></svg>Le plus frais</span>' : n > 1 ? '<span class="cmp-crown ghost">' + (gap > 0 ? "+" + gap + " nuits vs le plus frais" : "À égalité") + "</span>" : "") +
+        '<h3 class="cmp-name">' + escapeHtml(x.label) + "</h3>" +
+        '<div class="cmp-score"><span class="num">' + x.score + "</span><small>/10</small><span class=\"cmp-verdict\">" + escapeHtml(x.verdict) + "</span></div>" +
+        '<div class="cmp-metric"><span>Nuits étouffantes par été</span><b>' + x.n26 + "</b>" + bar(x.n26, x.s) + "</div>" +
+        '<div class="cmp-metric"><span>En 2050</span><b>' + x.n2050 + "</b>" + bar(x.n2050, x.s2050) + "</div>" +
+        '<ul class="cmp-facts"><li>' + x.traits.map(escapeHtml).join("</li><li>") + "</li><li>Quartier la nuit : " + (x.delta >= 0 ? "+" : "−") + fr(Math.abs(x.delta), 1) + " °C</li><li>Confiance " + escapeHtml(x.conf.toLowerCase()) + "</li></ul>" +
+        '<div class="cmp-acts"><a href="' + escapeHtml(x.q) + '">Rouvrir</a><button type="button" class="linklike" data-remove="' + i + '">Retirer</button></div></article>';
+    }).join("");
+    $("cmp-add").hidden = n >= CMP_MAX;
   }
 
   function wireCompare() {
     readCompare();
     renderCompare();
     $("cmp-btn").addEventListener("click", addCompare);
-    $("cmp-table").addEventListener("click", function (e) {
+    $("cmp").addEventListener("click", function (e) {
       var b = e.target.closest("[data-remove]");
       if (!b) return;
       compareList.splice(parseInt(b.getAttribute("data-remove"), 10), 1);
@@ -1482,6 +1489,7 @@
     refreshMapHeat();
     renderHero();
     if (state.result) update();
+    renderCompare();
     document.dispatchEvent(new CustomEvent("fournaise:theme"));
   }
 
