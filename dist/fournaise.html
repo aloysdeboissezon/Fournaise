@@ -501,7 +501,8 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 @media (pointer: coarse) {
   .seg label { min-height: 44px; }
   .seg { gap: 8px; }
-  .examples button { min-height: 40px; padding: 8px 14px; }
+  .examples button { min-height: 44px; padding: 8px 14px; }
+  .toggle button, .brand, .trust a, .v-actions .btn { min-height: 44px; }
   .topbar nav a, .foot-nav a { display: inline-flex; align-items: center; min-height: 44px; }
   .btn { min-height: 44px; }
   .icon-btn { width: 44px; height: 44px; }
@@ -540,6 +541,8 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 #cmp-table .best .badge { margin-top: 2px; }
 .v-extra { margin: 0; font-size: 0.82rem; color: var(--muted); }
 #map:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.foot-arr { grid-column: 1 / -1; gap: 4px 14px; }
+.topbar-in .grow { flex: 1; }
 
 </style>
 <noscript><p class="noscript">Fournaise calcule le score dans ton navigateur : active JavaScript pour l'utiliser.</p></noscript>
@@ -621,7 +624,7 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
       </details>
     </form>
 
-    <aside class="verdict panel" id="verdict" aria-label="Résultat">
+    <aside class="verdict panel" id="verdict" role="region" aria-label="Résultat">
       <p class="sr-only" id="v-live" role="status" aria-live="polite"></p>
       <div class="v-head">
         <span class="eyebrow">Score de chaleur</span>
@@ -870,6 +873,7 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
   <div class="wrap foot">
     <div class="foot-brand"><span class="brand"><span class="brand-mark" aria-hidden="true"></span>Fournaise</span><p>Le score de chaleur de ton futur logement. Version 1, Paris.</p></div>
     <nav class="foot-nav" aria-label="Pied de page"><a href="#outil">Le score</a><a href="#conseils">Conseils</a><a href="#methode">Méthode</a><a href="#faq">Questions</a><a href="https://github.com/aloysdeboissezon/Fournaise" target="_blank" rel="noopener">Code source</a></nav>
+    <nav class="foot-nav foot-arr" aria-label="Chaleur par arrondissement"><span>Par arrondissement :</span><a href="paris-1er.html">1er</a> <a href="paris-2e.html">2e</a> <a href="paris-3e.html">3e</a> <a href="paris-4e.html">4e</a> <a href="paris-5e.html">5e</a> <a href="paris-6e.html">6e</a> <a href="paris-7e.html">7e</a> <a href="paris-8e.html">8e</a> <a href="paris-9e.html">9e</a> <a href="paris-10e.html">10e</a> <a href="paris-11e.html">11e</a> <a href="paris-12e.html">12e</a> <a href="paris-13e.html">13e</a> <a href="paris-14e.html">14e</a> <a href="paris-15e.html">15e</a> <a href="paris-16e.html">16e</a> <a href="paris-17e.html">17e</a> <a href="paris-18e.html">18e</a> <a href="paris-19e.html">19e</a> <a href="paris-20e.html">20e</a></nav>
     <nav class="foot-nav foot-legal" aria-label="Informations légales"><a href="https://aloysdeboissezon.github.io/Fournaise/mentions-legales.html">Mentions légales</a><a href="https://aloysdeboissezon.github.io/Fournaise/confidentialite.html">Confidentialité</a><a href="https://aloysdeboissezon.github.io/Fournaise/donnees-licences.html">Données et licences</a><a href="https://github.com/aloysdeboissezon/Fournaise/issues/new" target="_blank" rel="noopener">Signaler une erreur</a></nav>
     <p class="foot-note">Une estimation pour choisir son logement, pas un diagnostic thermique. Données : Météo-France (station Paris-Montsouris), IGN, ADEME, BDNB, Ville de Paris.</p>
   </div>

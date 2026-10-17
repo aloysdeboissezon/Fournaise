@@ -534,3 +534,5 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 #cmp-table .best .badge { margin-top: 2px; }
 .v-extra { margin: 0; font-size: 0.82rem; color: var(--muted); }
 #map:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.foot-arr { grid-column: 1 / -1; gap: 4px 14px; }
+.topbar-in .grow { flex: 1; }

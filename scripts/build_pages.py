@@ -127,4 +127,7 @@ for name, (t, d, r, b) in PAGES.items():
 write("404.html", render("404.html", "Page introuvable", "Page introuvable.", "noindex",
       '<h1>Page introuvable</h1><p>Cette page n\'existe pas ou a changé d\'adresse.</p><p><a class="btn hot" href="/Fournaise/">Calculer mon score</a></p>', prefix="/Fournaise/"))
 write("robots.txt", "User-agent: *\nAllow: /\n\nSitemap: %ssitemap.xml\n" % BASE)
-write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>%s</loc></url>\n  <url><loc>%sdonnees-licences.html</loc></url>\n</urlset>\n' % (BASE, BASE))
+# Plan du site : accueil, données et licences, pages d'arrondissement (scripts/build_arr_pages.js).
+arr_pages = sorted((f for f in os.listdir(ROOT) if f.startswith("paris-") and f.endswith(".html")), key=lambda f: int(f[6:-6].replace("er", "").replace("e", "")))
+urls = [BASE, BASE + "donnees-licences.html"] + [BASE + f for f in arr_pages]
+write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join("  <url><loc>%s</loc></url>\n" % u for u in urls) + "</urlset>\n")
