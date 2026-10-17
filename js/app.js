@@ -286,7 +286,7 @@
   }
 
   // ---------------------------------------------------------------------------
-  // L'immeuble : DPE de l'ADEME regroupés par adresse (data/dpe/, précalculés) et BDNB (en direct)
+  // L'immeuble : DPE de l'ADEME regroupés par adresse (data/dpe/, précalculés) et BDNB (précalculée)
   // ---------------------------------------------------------------------------
   var dpeCache = {};
   var ERA_OF = function (y) {
@@ -324,13 +324,25 @@
     };
   }
 
-  // BDNB (CSTB) : deux appels, adresse BAN → groupe de bâtiments → caractéristiques. Quota limité par visiteur.
-  var BDNB = "https://api.bdnb.io/v1/bdnb/donnees/";
+  // BDNB (CSTB) : caractéristiques de l'immeuble par adresse, précalculées (data/bdnb/, scripts/build_bdnb.py).
+  var bdnbCache = {};
   function loadBdnb(banId) {
-    return fetchJson(BDNB + "rel_batiment_groupe_adresse?select=batiment_groupe_id&cle_interop_adr=eq." + encodeURIComponent(banId), 6000).then(function (rel) {
-      if (!rel.length) return null;
-      return fetchJson(BDNB + "batiment_groupe_complet?select=annee_construction,mat_mur_txt,mat_toit_txt,hauteur_mean,nb_niveau&batiment_groupe_id=eq." + encodeURIComponent(rel[0].batiment_groupe_id), 6000)
-        .then(function (b) { return b[0] || null; });
+    var code = banId.slice(0, 5);
+    if (!bdnbCache[code]) {
+      bdnbCache[code] = fetchJson("data/bdnb/" + code + ".json", 8000).catch(function (e) { delete bdnbCache[code]; throw e; });
+    }
+    var key = banId.slice(6).toLowerCase();
+    return bdnbCache[code].then(function (file) {
+      for (var i = 0; i < file.rows.length; i++) {
+        var r = file.rows[i];
+        if (r[0] === key) {
+          return {
+            annee_construction: r[1] || 0, mat_mur_txt: r[2] >= 0 ? file.murs[r[2]] : "", mat_toit_txt: r[3] >= 0 ? file.toits[r[3]] : "",
+            hauteur_mean: r[4] || 0, nb_niveau: r[5] || 0, nb_log: r[6] || 0
+          };
+        }
+      }
+      return null;
     });
   }
 
@@ -404,6 +416,7 @@
       if (known(x.mat_mur_txt)) f2.push("murs : " + x.mat_mur_txt.toLowerCase());
       if (known(x.mat_toit_txt)) f2.push("toit : " + x.mat_toit_txt.toLowerCase());
       if (x.hauteur_mean) f2.push(x.hauteur_mean + " m de haut");
+      if (x.nb_niveau) f2.push(x.nb_niveau + " niveaux");
       if (f2.length) parts.push("BDNB : " + f2.join(" · "));
     }
     var pre = Object.keys(state.prefilled).map(function (k) { return k === "era" ? "l'époque de construction" : "le confort d'été"; });

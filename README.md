@@ -31,10 +31,15 @@ data/montsouris-raw/       relevés quotidiens Tn/Tx de Paris-Montsouris, juin-s
 data/montsouris_ete_2017_2026.csv   les mêmes relevés en un CSV
 data/paris-arrondissements.geojson  contours des 20 arrondissements
 data/paris-chaleur-100m.json        même grille que js/data-heat.js, lisible par d'autres outils
+data/paris-lst-100m.json            températures de surface Landsat d'été sur la même grille (calage de la carte)
 data/dpe/751xx.json                 DPE ADEME regroupés par adresse, un fichier par arrondissement (chargé à la demande)
+data/bdnb/751xx.json                BDNB par adresse (année, murs, toit, hauteur, niveaux), un fichier par arrondissement
 data/raw/                           téléchargements bruts, non versionnés (plusieurs centaines de Mo)
 scripts/fetch_sources.py   télécharge BD TOPO (IGN) et DPE (ADEME) dans data/raw/
-scripts/build_heat.py      calcule la grille de chaleur depuis la BD TOPO
+scripts/build_lst.py       moyenne des scènes Landsat d'été sur la grille de 100 m
+scripts/build_heat.py      calcule la grille de chaleur (BD TOPO, arbres, poids ajustés sur Landsat)
+scripts/build_bdnb.py      regroupe la BDNB par adresse
+scripts/check_meteofrance.py  compare les relevés embarqués au fichier officiel Météo-France
 scripts/build_dpe.py       regroupe les DPE par adresse
 scripts/build_data.py      régénère js/data-paris.js à partir de data/
 scripts/build_artifact.py  produit dist/fournaise.html
@@ -48,10 +53,12 @@ puis `python3 scripts/build_data.py` et `python3 scripts/build_artifact.py`.
 Pour chaque jour du 1er juin au 30 septembre des dix derniers étés :
 
 1. Tn et Tx réels de la station Météo-France Paris-Montsouris.
-2. Écart de quartier (îlot de chaleur nocturne), lu dans une grille de 100 m précalculée depuis la BD TOPO de
-   l'IGN : part bâtie et hauteur des bâtiments (rayon ~200 m), végétation (~200 m et ~600 m), eau. Les entrées
-   sont mesurées, les poids sont ceux de Fournaise (en tête de `scripts/build_heat.py`). Calé pour que Montsouris
-   vaille 0 et le centre de Paris environ +1,5 °C la nuit. Plus fort les nuits chaudes.
+2. Écart de quartier (îlot de chaleur nocturne), lu dans une grille de 100 m précalculée : part de végétation et
+   d'eau dans un rayon de ~200 m (BD TOPO de l'IGN). Les poids sont ajustés par moindres carrés sur les
+   températures de surface Landsat d'été (12 journées chaudes, 17 460 mailles, R² 0,65) ; le bâti, la hauteur des
+   immeubles et les arbres de la Ville n'améliorent pas l'ajustement une fois la végétation et l'eau connues.
+   Landsat mesure la surface vers 12 h 40, pas l'air la nuit : l'amplitude en °C est un choix de Fournaise
+   (Montsouris = 0, centre de Paris ≈ +1,5 °C), plus fort les nuits chaudes.
 3. Inertie : moyenne glissante sur 4 jours, plus lente pour la pierre, plus rapide sous un toit en zinc,
    amortie autour de 20 °C.
 4. Apports : internes (surface, époque, DPE) et solaires (toiture, orientation, vitrage, volets) proportionnels
@@ -65,8 +72,8 @@ Projection 2050 : mêmes étés décalés de +1,2 °C la nuit et +1,4 °C le jou
 France +2,7 °C en 2050), avec une fourchette basse (+0,6 / +0,7) et haute (+2,0 / +2,4).
 
 À l'adresse : les DPE de l'immeuble (ADEME, `data/dpe/`) donnent le confort d'été le plus fréquent, l'année de
-construction, la part de logements traversants et protégés du soleil ; la BDNB, interrogée en direct, ajoute
-année, murs, toiture et hauteur. Le confort d'été et l'époque préremplissent le formulaire tant que
+construction, la part de logements traversants et protégés du soleil ; la BDNB (`data/bdnb/`) ajoute
+année, murs, toiture, hauteur et niveaux. Le confort d'été et l'époque préremplissent le formulaire tant que
 l'utilisateur ne les a pas changés.
 
 Confiance : précision de la localisation, nombre de réponses connues, présence du confort d'été du DPE
@@ -76,31 +83,34 @@ La fourchette de nuits s'élargit quand la confiance baisse.
 ## Mettre à jour les données
 
 ```
-python3 scripts/fetch_sources.py        # IGN et ADEME, reprend où il s'est arrêté
-python3 scripts/build_heat.py           # js/data-heat.js et data/paris-chaleur-100m.json
+python3 scripts/fetch_sources.py        # IGN, ADEME, arbres, BDNB, Landsat, Météo-France ; reprend où il s'est arrêté
+python3 scripts/build_heat.py           # grille de base (poids de départ)
+python3 scripts/build_lst.py            # Landsat sur la grille
+python3 scripts/build_heat.py           # relancé : poids ajustés sur Landsat, js/data-heat.js
 python3 scripts/build_dpe.py            # data/dpe/751xx.json
+python3 scripts/build_bdnb.py           # data/bdnb/751xx.json
+python3 scripts/check_meteofrance.py    # relevés embarqués contre le fichier officiel
 python3 scripts/build_artifact.py       # dist/fournaise.html
 ```
 
-Les services publics coupent souvent les longues réponses : le script réessaie chaque page.
+Les services publics coupent souvent les longues réponses : les scripts réessaient. Landsat demande `rasterio` et
+`pyproj` (`pip install rasterio pyproj`).
 
 ## Ce qui reste à faire
 
-- Températures de surface Landsat pour caler la carte de chaleur. Le catalogue Planetary Computer
-  (`planetarycomputer.microsoft.com`, fichiers sur `*.blob.core.windows.net`) était bloqué depuis l'environnement
-  de calcul le 17 octobre 2026, ainsi que les autres miroirs Landsat (Element 84, USGS).
-- Arbres d'alignement (OpenStreetMap ou Ville de Paris) : Overpass ne répondait pas depuis l'environnement de calcul,
-  et `opendata.paris.fr` était bloqué. La BD TOPO couvre les parcs et bois mais pas les arbres isolés.
-- La BDNB en direct est limitée par visiteur ; son téléchargement complet (`bdnb.io`, stockage Scaleway) était
-  bloqué. Avec lui, l'année et les matériaux pourraient être précalculés pour tous les immeubles.
-- `dist/fournaise.html` (version un seul fichier) n'a pas les DPE par adresse, qui sont chargés depuis `data/dpe/`.
+- Caler l'amplitude de la carte sur des mesures d'air la nuit (stations de la Ville de Paris, capteurs), plutôt que
+  sur la surface de jour vue par Landsat.
+- Remplacer les 100 derniers jours des relevés Montsouris (23 juin au 30 septembre 2026), pas encore dans le fichier
+  officiel de Météo-France, quand il sera mis à jour.
+- Les DPE par adresse ne sont pas dans `dist/fournaise.html` (version un seul fichier) : ils se chargent depuis `data/`.
+- Un recalage des poids de la carte avec de l'air de nuit pourrait faire revenir le bâti (collinéaire avec la végétation).
 - Caler le modèle sur des mesures réelles (quelques capteurs dans des chambres de bonne cet été).
 - Lyon, Marseille, Toulouse : une station de référence, un contour, `fetch_sources.py` et `build_heat.py` sur leur rectangle.
 
 ## Niveau de preuve des données
 
-La page contient un tableau « Sources et niveau de preuve » qui classe chaque donnée : mesurée, publiée, estimée ou choisie. En résumé : les températures sont mesurées (Météo-France, Paris-Montsouris) ; la TRACC (+2,7 °C en 2050) et l'ordre de grandeur de l'îlot de chaleur (jusqu'à 12 °C la nuit, parcs 1 à 2 °C plus frais, Ville de Paris) sont publiés ; la carte de chaleur, les coefficients du bâtiment, la conversion à l'été 2050 et le seuil de 26 °C (l'OMS recommande 24 °C) sont des estimations ou des choix de Fournaise. Le bâti, la végétation
-et l'eau autour du logement sont mesurés (IGN) ; leur conversion en degrés est un choix de Fournaise. Les DPE de
+La page contient un tableau « Sources et niveau de preuve » qui classe chaque donnée : mesurée, publiée, estimée ou choisie. En résumé : les températures sont mesurées (Météo-France, Paris-Montsouris) ; la TRACC (+2,7 °C en 2050) et l'ordre de grandeur de l'îlot de chaleur (jusqu'à 12 °C la nuit, parcs 1 à 2 °C plus frais, Ville de Paris) sont publiés ; la carte de chaleur, les coefficients du bâtiment, la conversion à l'été 2050 et le seuil de 26 °C (l'OMS recommande 24 °C) sont des estimations ou des choix de Fournaise. La végétation
+et l'eau autour du logement sont mesurées (IGN), leurs poids ajustés sur Landsat ; leur conversion en degrés de nuit est un choix de Fournaise. Les DPE de
 l'immeuble sont publiés (ADEME) mais déclaratifs.
 
 ## Sources
@@ -111,5 +121,8 @@ l'immeuble sont publiés (ADEME) mais déclaratifs.
 - Contours des arrondissements : Ville de Paris (open data), via le projet click_that_hood.
 - BD TOPO V3, IGN, via le service WFS de la Géoplateforme (data.geopf.fr), lue le 17 octobre 2026.
 - DPE logements existants depuis juillet 2021, ADEME (data.ademe.fr), lus le 17 octobre 2026.
-- BDNB, CSTB (api.bdnb.io), interrogée en direct.
+- BDNB, CSTB, archive open data du département 75, millésime 2026-02.b (open-data.s3.fr-par.scw.cloud).
+- Arbres de la Ville de Paris (opendata.paris.fr, jeu « les-arbres »).
+- Landsat 8 et 9, collection 2 niveau 2 (USGS), via Microsoft Planetary Computer.
+- Relevés quotidiens officiels de Météo-France (data.gouv.fr), utilisés pour contrôler les relevés embarqués.
 - Base Adresse Nationale, via la Géoplateforme (géocodage), testée le 17 octobre 2026.
