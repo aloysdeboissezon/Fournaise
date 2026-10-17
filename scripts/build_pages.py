@@ -4,7 +4,7 @@
 Usage : python3 scripts/build_pages.py
 Les passages à compléter par l'éditeur sont marqués <span class="a-completer">.
 """
-import os
+import json, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = "https://aloysdeboissezon.github.io/Fournaise/"
@@ -52,7 +52,7 @@ MENTIONS = BANNER + """
 <h2>Hébergeur</h2>
 <p>GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis (service GitHub Pages).</p>
 <h2>Nature du service</h2>
-<p>Fournaise donne une <strong>estimation indicative</strong> du confort d'été d'un logement à Paris. Le résultat est calculé dans le navigateur à partir de relevés météorologiques, de données publiques et d'hypothèses décrites dans la section « Sources et niveau de preuve » de la page d'accueil. Il est non contractuel, il ne remplace ni un diagnostic de performance énergétique, ni une étude thermique réglementaire, ni une visite du logement, et il ne doit pas être présenté comme tel dans une annonce, un bail ou une négociation.</p>
+<p>Fournaise donne une <strong>estimation indicative</strong> du confort d'été d'un logement à Paris ou en petite couronne. Le résultat est calculé dans le navigateur à partir de relevés météorologiques, de données publiques et d'hypothèses décrites dans la section « Sources et niveau de preuve » de la page d'accueil. Il est non contractuel, il ne remplace ni un diagnostic de performance énergétique, ni une étude thermique réglementaire, ni une visite du logement, et il ne doit pas être présenté comme tel dans une annonce, un bail ou une négociation.</p>
 <h2>Responsabilité</h2>
 <p>L'éditeur s'efforce de fournir des informations exactes mais ne garantit ni l'exactitude ni l'exhaustivité du score et décline toute responsabilité quant aux décisions prises sur sa seule base. Pour signaler une erreur, utiliser le lien « Signaler une erreur » en bas de chaque page.</p>
 <h2>Propriété intellectuelle</h2>
@@ -73,7 +73,7 @@ CONFIDENTIALITE = BANNER + """
 <li><strong>Polices et carte.</strong> Les polices sont hébergées avec le site : aucune requête vers Google. La carte est dessinée par le site lui-même, sans fond de carte externe.</li>
 </ul>
 <h2>Partage d'un résultat</h2>
-<p>Le lien de partage contient la position (arrondie à environ 100 m) et les réponses dans l'adresse de la page ; rien n'est envoyé à un serveur tant que tu ne le colles pas quelque part. Le texte et l'image de partage ne mentionnent par défaut que l'arrondissement.</p>
+<p>Le lien de partage contient la position (arrondie à environ 100 m) et les réponses dans l'adresse de la page ; rien n'est envoyé à un serveur tant que tu ne le colles pas quelque part. Le texte et l'image de partage ne mentionnent par défaut que la commune ou l'arrondissement.</p>
 <h2>Tes droits</h2>
 <p>Fournaise ne détient aucune donnée personnelle te concernant. Pour toute question, écris à """ + MAIL + """ ou ouvre un <a href="@ISSUES@" target="_blank" rel="noopener">signalement</a>. Tu peux aussi saisir la CNIL (<a href="https://www.cnil.fr" target="_blank" rel="noopener">cnil.fr</a>).</p>
 <h2>Si cela change</h2>
@@ -89,8 +89,9 @@ ROWS = [
     ("DPE des logements existants depuis 2021", "ADEME (data.ademe.fr)", "Licence Ouverte 2.0 (Etalab)", "Citer « ADEME ». Données déclaratives."),
     ("Caractéristiques des bâtiments", "BDNB, CSTB (millésime 2026-02.b)", "Licence Ouverte 2.0 " + TODO("à confirmer"), "Citer « CSTB, BDNB »."),
     ("Géocodage des adresses", "Base Adresse Nationale, via la Géoplateforme (IGN)", "Licence Ouverte 2.0 (Etalab)", "Service interrogé en direct depuis le navigateur."),
-    ("Contours des arrondissements", "Ville de Paris (open data), via le projet click_that_hood", TODO("À confirmer (ODbL ou Licence Ouverte selon le jeu)"), 'Voir <a href="https://opendata.paris.fr" target="_blank" rel="noopener">opendata.paris.fr</a>.'),
-    ("Arbres de la Ville de Paris", "Ville de Paris (opendata.paris.fr, jeu « les-arbres »)", "ODbL 1.0", "Testés lors de la conception ; ils n'améliorent pas le calage et ne servent pas au calcul."),
+    ("Contours des arrondissements et des communes", "ADMIN EXPRESS COG CARTO, IGN (Géoplateforme)", "Licence Ouverte 2.0 (Etalab)", "Citer « IGN, ADMIN EXPRESS »."),
+    ("Températures minimales des stations de la région (calage de la carte)", "Météo-France, via data.gouv.fr (données climatologiques de base quotidiennes)", "Licence Ouverte 2.0 (Etalab)", "Citer « Météo-France »."),
+    ("Arbres de la Ville de Paris", "Ville de Paris (opendata.paris.fr, jeu « les-arbres »)", "ODbL 1.0", "Testés lors de la conception de la carte de Paris ; ils n'amélioraient pas le calage et ne servent pas au calcul."),
     ("Trajectoire de réchauffement (TRACC)", "Ministère de la Transition écologique, dossier de presse du 27 janvier 2026", "Information publique, citée", "Le passage à un écart d'été est une estimation de Fournaise."),
     ("Polices Unbounded, Instrument Sans, IBM Plex Mono", "Google Fonts, hébergées avec le site", "SIL Open Font License 1.1", "Fichiers dans le dossier fonts/."),
 ]
@@ -127,7 +128,7 @@ for name, (t, d, r, b) in PAGES.items():
 write("404.html", render("404.html", "Page introuvable", "Page introuvable.", "noindex",
       '<h1>Page introuvable</h1><p>Cette page n\'existe pas ou a changé d\'adresse.</p><p><a class="btn hot" href="/Fournaise/">Calculer mon score</a></p>', prefix="/Fournaise/"))
 write("robots.txt", "User-agent: *\nAllow: /\n\nSitemap: %ssitemap.xml\n" % BASE)
-# Plan du site : accueil, données et licences, pages d'arrondissement (scripts/build_arr_pages.js).
-arr_pages = sorted((f for f in os.listdir(ROOT) if f.startswith("paris-") and f.endswith(".html")), key=lambda f: int(f[6:-6].replace("er", "").replace("e", "")))
-urls = [BASE, BASE + "donnees-licences.html"] + [BASE + f for f in arr_pages]
+# Plan du site : accueil, données et licences, pages par arrondissement et par commune (scripts/build_zone_pages.js).
+zone_pages = [p["file"] for p in json.load(open(os.path.join(ROOT, "data", "zone-pages.json")))]
+urls = [BASE, BASE + "donnees-licences.html", BASE + "petite-couronne.html"] + [BASE + f for f in zone_pages]
 write("sitemap.xml", '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join("  <url><loc>%s</loc></url>\n" % u for u in urls) + "</urlset>\n")

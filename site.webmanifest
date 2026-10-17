@@ -1,7 +1,7 @@
 {
   "name": "Fournaise · score de chaleur",
   "short_name": "Fournaise",
-  "description": "Le score de chaleur d'un logement parisien avant de le louer : nuits étouffantes, projection 2050 et conseils concrets.",
+  "description": "Le score de chaleur d'un logement à Paris ou en petite couronne avant de le louer : nuits étouffantes, projection 2050 et conseils concrets.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",

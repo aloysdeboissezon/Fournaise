@@ -1,11 +1,13 @@
-# Fournaise · version 1 (Paris)
+# Fournaise · Paris et petite couronne
 
-Site statique qui donne un score de chaleur sur 10 à un logement parisien avant de le louer ou de l'acheter :
+Site statique qui donne un score de chaleur sur 10 à un logement de Paris, des Hauts-de-Seine, de la Seine-Saint-Denis
+ou du Val-de-Marne avant de le louer ou de l'acheter :
 nuits étouffantes par été, nuits au-dessus de 28 °C, projection 2050, niveau de confiance, conseils chiffrés,
 questions à poser pendant la visite et carte de partage pour les réseaux.
 
 Aucun serveur, aucune clé d'API, aucun coût : tout tourne dans le navigateur. Les données lourdes (carte de chaleur,
-DPE par adresse) sont précalculées une fois pour Paris et versionnées dans le dépôt.
+DPE et BDNB par adresse) sont précalculées une fois pour la zone et versionnées dans le dépôt, puis chargées à la demande
+(une tuile de chaleur et un fichier par commune quand une adresse est choisie).
 
 ## Lancer le site
 
@@ -32,19 +34,27 @@ tests/                     tests du modèle (node --test), budget de poids, acce
 css/style.css              styles, thème clair et sombre
 js/model.js                modèle de calcul, tous les coefficients en clair
 js/app.js                  interface : formulaire, carte, graphiques, partage
-js/data-paris.js           relevés Montsouris et arrondissements embarqués (générés, ne pas éditer)
-js/data-heat.js            grille de chaleur de 100 m embarquée (générée par build_heat.py)
+js/data-paris.js           relevés Montsouris et contours des 142 communes et arrondissements (générés, ne pas éditer)
+js/data-heat.js            carte de chaleur d'ensemble (400 m) et tracé de l'eau, embarqués (générés par build_heat.py)
 data/montsouris-raw/       relevés quotidiens Tn/Tx de Paris-Montsouris, juin-septembre 2017-2026
 data/montsouris_ete_2017_2026.csv   les mêmes relevés en un CSV
-data/paris-arrondissements.geojson  contours des 20 arrondissements
-data/paris-chaleur-100m.json        même grille que js/data-heat.js, lisible par d'autres outils
-data/paris-lst-100m.json            températures de surface Landsat d'été sur la même grille (calage de la carte)
-data/dpe/751xx.json                 DPE ADEME regroupés par adresse, un fichier par arrondissement (chargé à la demande)
-data/bdnb/751xx.json                BDNB par adresse (année, murs, toit, hauteur, niveaux), un fichier par arrondissement
-data/raw/                           téléchargements bruts, non versionnés (plusieurs centaines de Mo)
-scripts/fetch_sources.py   télécharge BD TOPO (IGN) et DPE (ADEME) dans data/raw/
+data/zone-communes.geojson          contours IGN des 20 arrondissements et 122 communes de la petite couronne
+data/heat/<l>_<c>.json              carte de chaleur fine (100 m), 69 tuiles de 4 km chargées à l'adresse
+data/zone-chaleur-100m.json         la même grille d'un seul tenant, lisible par d'autres outils
+data/zone-lst-100m.json             températures de surface Landsat d'été sur la même grille (contrôle de la carte)
+data/stations-nuit.json             écarts de Tn des stations Météo-France de la zone à Montsouris (calage de la carte)
+data/zone-pages.json                liste des pages par commune (pour le plan du site)
+data/dpe/<code INSEE>.json          DPE ADEME regroupés par adresse, un fichier par arrondissement ou commune
+data/bdnb/<code INSEE>.json         BDNB par adresse (année, murs, toit, hauteur, niveaux), un fichier par arrondissement ou commune
+data/raw/                           téléchargements bruts, non versionnés (plusieurs Go)
+paris-1er.html … paris-20e.html, <commune>-<dép>.html, petite-couronne.html
+                           pages par arrondissement et par commune (SEO), générées par scripts/build_zone_pages.js
+scripts/zone.py            rectangle, départements et grille de la zone, partagés par les scripts Python
+scripts/fetch_sources.py   télécharge contours, BD TOPO (IGN), DPE (ADEME), BDNB, Landsat, Météo-France dans data/raw/
+scripts/check_stations.py  écarts de Tn des stations de la zone à Montsouris → data/stations-nuit.json
 scripts/build_lst.py       moyenne des scènes Landsat d'été sur la grille de 100 m
-scripts/build_heat.py      calcule la grille de chaleur (BD TOPO, arbres, poids ajustés sur Landsat)
+scripts/build_heat.py      calcule la carte de chaleur (BD TOPO, poids ajustés sur les stations Météo-France)
+scripts/build_zone_pages.js  pages par arrondissement et par commune
 scripts/build_bdnb.py      regroupe la BDNB par adresse
 scripts/check_meteofrance.py  compare les relevés embarqués au fichier officiel Météo-France
 scripts/build_dpe.py       regroupe les DPE par adresse
@@ -67,12 +77,13 @@ puis `python3 scripts/build_data.py` et `python3 scripts/build_artifact.py`.
 Pour chaque jour du 1er juin au 30 septembre des dix derniers étés :
 
 1. Tn et Tx réels de la station Météo-France Paris-Montsouris.
-2. Écart de quartier (îlot de chaleur nocturne), lu dans une grille de 100 m précalculée : part de végétation et
-   d'eau dans un rayon de ~200 m (BD TOPO de l'IGN). Les poids sont ajustés par moindres carrés sur les
-   températures de surface Landsat d'été (12 journées chaudes, 17 460 mailles, R² 0,65) ; le bâti, la hauteur des
-   immeubles et les arbres de la Ville n'améliorent pas l'ajustement une fois la végétation et l'eau connues.
-   Landsat mesure la surface vers 12 h 40, pas l'air la nuit : l'amplitude en °C est un choix de Fournaise
-   (Montsouris = 0, centre de Paris ≈ +1,5 °C), plus fort les nuits chaudes.
+2. Écart de quartier (îlot de chaleur nocturne), lu dans une grille de 100 m précalculée sur Paris et la petite
+   couronne : 0,29 °C par m³ de bâti par m² de sol et −4,2 °C pour un quartier entièrement végétalisé, dans un rayon
+   de ~500 m (BD TOPO de l'IGN), nul à Montsouris. Ces poids sont ajustés sur les écarts de température minimale
+   mesurés par 11 stations Météo-France (nuits où Montsouris reste au-dessus de 20 °C, étés 2017-2026) : erreur
+   0,64 °C, 0,73 °C en validation croisée, contre 1,51 °C sans carte. Cœur de Paris ≈ +1,75 °C. Landsat (surface vers
+   12 h 40) ne sert plus qu'au contrôle (corrélation 0,77) : les pelouses d'aéroport, brûlantes à midi, sont fraîches
+   la nuit. L'effet est plus fort les nuits chaudes.
 3. Inertie : moyenne glissante sur 4 jours, plus lente pour la pierre, plus rapide sous un toit en zinc,
    amortie autour de 20 °C.
 4. Apports : internes (surface, époque, DPE) et solaires (toiture, orientation, vitrage, volets) proportionnels
@@ -91,19 +102,31 @@ année, murs, toiture, hauteur et niveaux. Le confort d'été et l'époque prér
 l'utilisateur ne les a pas changés.
 
 Confiance : précision de la localisation, nombre de réponses connues, présence du confort d'été du DPE
-(compté à moitié quand il vient des DPE de l'immeuble).
+(compté à moitié quand il vient des DPE de l'immeuble), un point de moins hors de Paris.
+
+Station de référence : Paris-Montsouris pour toute la zone. Les stations de banlieue (Orly, Le Bourget, Saint-Maur,
+Neuilly-sur-Marne…) sont souvent sur des aéroports ou des terrains dégagés et n'ont pas toutes dix étés complets ;
+elles servent à caler l'écart de quartier, pas de série de base.
+
+Moins fiable en petite couronne qu'à Paris : une seule série de référence, 8 stations de calage hors de Paris
+(dont 3 juste au-delà de la zone), relief ignoré, modèle du logement pensé pour les appartements (pas de question
+« maison »), DPE plus rares dans les quartiers pavillonnaires. Le niveau de confiance et les pages par commune le disent.
 La fourchette de nuits s'élargit quand la confiance baisse.
 
 ## Mettre à jour les données
 
 ```
-python3 scripts/fetch_sources.py        # IGN, ADEME, arbres, BDNB, Landsat, Météo-France ; reprend où il s'est arrêté
-python3 scripts/build_heat.py           # grille de base (poids de départ)
+python3 scripts/fetch_sources.py        # contours, IGN, ADEME, BDNB, Landsat, Météo-France ; reprend où il s'est arrêté
+                                        # (--dep 92,93,94 pour quelques départements, --box 00,01 pour paralléliser l'IGN)
+python3 scripts/build_data.py           # contours → data/zone-communes.geojson et js/data-paris.js
+python3 scripts/check_stations.py       # data/stations-nuit.json
 python3 scripts/build_lst.py            # Landsat sur la grille
-python3 scripts/build_heat.py           # relancé : poids ajustés sur Landsat, js/data-heat.js
-python3 scripts/build_dpe.py            # data/dpe/751xx.json
-python3 scripts/build_bdnb.py           # data/bdnb/751xx.json
+python3 scripts/build_heat.py           # js/data-heat.js, data/heat/
+python3 scripts/build_dpe.py            # data/dpe/<code>.json (départements téléchargés seulement)
+python3 scripts/build_bdnb.py           # data/bdnb/<code>.json (départements téléchargés seulement)
 python3 scripts/check_meteofrance.py    # relevés embarqués contre le fichier officiel
+node scripts/build_zone_pages.js        # pages par arrondissement et par commune
+python3 scripts/build_pages.py          # pages de texte et plan du site
 python3 scripts/build_artifact.py       # dist/fournaise.html
 ```
 
@@ -112,19 +135,19 @@ Les services publics coupent souvent les longues réponses : les scripts réessa
 
 ## Ce qui reste à faire
 
-- Caler l'amplitude de la carte sur des mesures d'air la nuit (stations de la Ville de Paris, capteurs), plutôt que
-  sur la surface de jour vue par Landsat.
+- Affiner la carte avec les capteurs de la Ville de Paris (opendata.paris.fr) et le relief (plateaux, vallées) ; le jardin
+  du Luxembourg est la plus grosse erreur (carte +0,9 °C, mesure −0,7 °C).
+- Ajouter une question « maison ou appartement » pour la petite couronne.
 - Remplacer les 100 derniers jours des relevés Montsouris (23 juin au 30 septembre 2026), pas encore dans le fichier
   officiel de Météo-France, quand il sera mis à jour.
-- Les DPE par adresse ne sont pas dans `dist/fournaise.html` (version un seul fichier) : ils se chargent depuis `data/`.
-- Un recalage des poids de la carte avec de l'air de nuit pourrait faire revenir le bâti (collinéaire avec la végétation).
+- Les DPE par adresse et les tuiles fines ne sont pas dans `dist/fournaise.html` (version un seul fichier) : ils se
+  chargent depuis `data/` ; sans eux, la page utilise la carte d'ensemble de 400 m.
 - Caler le modèle sur des mesures réelles (quelques capteurs dans des chambres de bonne cet été).
 - Lyon, Marseille, Toulouse : une station de référence, un contour, `fetch_sources.py` et `build_heat.py` sur leur rectangle.
 
 ## Niveau de preuve des données
 
-La page contient un tableau « Sources et niveau de preuve » qui classe chaque donnée : mesurée, publiée, estimée ou choisie. En résumé : les températures sont mesurées (Météo-France, Paris-Montsouris) ; la TRACC (+2,7 °C en 2050) et l'ordre de grandeur de l'îlot de chaleur (jusqu'à 12 °C la nuit, parcs 1 à 2 °C plus frais, Ville de Paris) sont publiés ; la carte de chaleur, les coefficients du bâtiment, la conversion à l'été 2050 et le seuil de 26 °C (l'OMS recommande 24 °C) sont des estimations ou des choix de Fournaise. La végétation
-et l'eau autour du logement sont mesurées (IGN), leurs poids ajustés sur Landsat ; leur conversion en degrés de nuit est un choix de Fournaise. Les DPE de
+La page contient un tableau « Sources et niveau de preuve » qui classe chaque donnée : mesurée, publiée, estimée ou choisie. En résumé : les températures sont mesurées (Météo-France, Paris-Montsouris) ; la TRACC (+2,7 °C en 2050) et l'ordre de grandeur de l'îlot de chaleur (jusqu'à 12 °C la nuit, parcs 1 à 2 °C plus frais, Ville de Paris) sont publiés ; la carte de chaleur, les coefficients du bâtiment, la conversion à l'été 2050 et le seuil de 26 °C (l'OMS recommande 24 °C) sont des estimations ou des choix de Fournaise. Le bâti et la végétation autour du logement sont mesurés (IGN) et leurs poids ajustés sur les températures de nuit de 11 stations Météo-France. Les DPE de
 l'immeuble sont publiés (ADEME) mais déclaratifs.
 
 ## Sources
@@ -132,7 +155,8 @@ l'immeuble sont publiés (ADEME) mais déclaratifs.
 - Relevés quotidiens Paris-Montsouris (station 75114001), lus sur keraunos.org ; normales 1991-2020 de la fiche
   climatologique Météo-France.
 - TRACC, ministère de la Transition écologique.
-- Contours des arrondissements : Ville de Paris (open data), via le projet click_that_hood.
+- Contours des arrondissements et des communes : IGN, ADMIN EXPRESS COG CARTO (data.geopf.fr).
+- Températures minimales de 11 stations de la région, Météo-France (données quotidiennes, data.gouv.fr).
 - BD TOPO V3, IGN, via le service WFS de la Géoplateforme (data.geopf.fr), lue le 17 octobre 2026.
 - DPE logements existants depuis juillet 2021, ADEME (data.ademe.fr), lus le 17 octobre 2026.
 - BDNB, CSTB, archive open data du département 75, millésime 2026-02.b (open-data.s3.fr-par.scw.cloud).

@@ -19,7 +19,7 @@ scripts = "".join("<script>\n" + read(p) + "\n</script>\n" for p in ("js/data-pa
 
 page = f"""<title>Fournaise</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Le score de chaleur d'un logement parisien avant de le louer.">
+<meta name="description" content="Le score de chaleur d'un logement à Paris ou en petite couronne avant de le louer.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{fonts}">
