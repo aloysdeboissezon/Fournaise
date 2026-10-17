@@ -343,10 +343,11 @@
     return VERDICTS[VERDICTS.length - 1];
   }
 
-  // Projection 2050 : écarts estivaux par rapport à la période 2017-2026, d'après la
-  // trajectoire de réchauffement de référence (TRACC : France +2,7 °C en 2050 contre
-  // environ +1,8 °C au début des années 2020), avec un été qui se réchauffe ~1,3 fois
-  // plus vite que l'année. Fourchette basse et haute pour l'incertitude des modèles.
+  // Projection 2050 : écarts estivaux par rapport à 2017-2026.
+  // Source publiée : TRACC, France hexagonale +2 °C en 2030, +2,7 °C en 2050, +4 °C en 2100
+  // (ministère de la Transition écologique, 27/01/2026). Le passage à un écart d'été
+  // (+1,2 °C la nuit, +1,4 °C le jour) est une ESTIMATION de Fournaise : le document ne
+  // donne pas de chiffre estival. Fourchette basse et haute pour l'incertitude des modèles.
   var SCENARIOS_2050 = {
     low: { tn: 0.6, tx: 0.7, label: "fourchette basse" },
     central: { tn: 1.2, tx: 1.4, label: "trajectoire de référence (TRACC)" },

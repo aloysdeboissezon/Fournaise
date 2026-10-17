@@ -371,6 +371,15 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
 .score { animation: pop 0.45s ease; }
 @keyframes pop { from { transform: scale(0.94); opacity: 0.4; } to { transform: none; opacity: 1; } }
 @media (max-width: 520px) { .hero-cta .btn { flex: 1 1 100%; } .trust { flex-direction: column; gap: 4px; } }
+.src td:first-child { min-width: 11rem; font-weight: 500; }
+.src td:nth-child(2) { white-space: nowrap; }
+.src td:nth-child(3) { color: var(--muted); font-size: 0.85rem; min-width: 18rem; }
+.src a { color: var(--ink); }
+.badge { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; border: 1px solid currentColor; margin: 1px 0; }
+.b-mes { color: var(--ok); }
+.b-pub { color: var(--focus); }
+.b-est { color: var(--warn); }
+.b-cho { color: var(--muted); }
 
 </style>
 <a class="skip" href="#outil">Aller directement à l'outil</a>
@@ -491,7 +500,7 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
     <div class="section-head row">
       <div>
         <h2>Tes dix derniers étés, nuit par nuit</h2>
-        <p>Chaque case est une nuit entre le 1er juin et le 30 septembre. Sa couleur donne la température estimée de la chambre au moment de se coucher. Au-dessus de 26 °C, le sommeil devient difficile.</p>
+        <p>Chaque case est une nuit entre le 1er juin et le 30 septembre. Sa couleur donne la température estimée de la chambre au moment de se coucher. L'OMS recommande de rester sous 24 °C la nuit ; Fournaise compte une nuit comme étouffante à partir de 26 °C.</p>
       </div>
       <div class="toggle" role="group" aria-label="Période">
         <button type="button" id="view-now" aria-pressed="true">Aujourd'hui</button>
@@ -521,7 +530,7 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
     <div class="card future">
       <div class="section-head">
         <h2>Ton appart en 2050</h2>
-        <p>Les mêmes dix étés, réchauffés selon la trajectoire de référence pour l'adaptation de la France (TRACC : +2,7 °C en France en 2050 par rapport à l'ère préindustrielle).</p>
+        <p>Les mêmes dix étés, réchauffés selon la trajectoire de référence pour l'adaptation de la France (TRACC : +2 °C en 2030, +2,7 °C en 2050, +4 °C en 2100 pour la France hexagonale). Le passage de ces moyennes annuelles à un écart d'été est une estimation de Fournaise, détaillée dans « Sources et niveau de preuve ».</p>
       </div>
       <div class="duo">
         <div><span class="yr">Aujourd'hui</span><span class="big" id="f-now">–</span><span class="sub" id="f-now-s"></span></div>
@@ -600,12 +609,29 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
         <div class="tbl-wrap"><table id="coef-table"><thead><tr><th>Réponse</th><th class="num">Effet</th></tr></thead><tbody></tbody></table></div>
       </div>
     </div>
+    <div class="card" id="sources">
+      <h3>Sources et niveau de preuve</h3>
+      <p class="caption" style="margin:6px 0 12px">Chaque donnée du modèle, avec ce qui est mesuré, publié, estimé ou choisi. Fournaise ne présente rien d'estimé comme un fait.</p>
+      <div class="tbl-wrap"><table class="src">
+        <thead><tr><th>Donnée</th><th>Statut</th><th>Origine et réserves</th></tr></thead>
+        <tbody>
+          <tr><td>Températures min et max de chaque jour, juin à septembre 2017-2026</td><td><span class="badge b-mes">Mesuré</span></td><td>Station Météo-France Paris-Montsouris (75114001), lues sur <a href="https://www.keraunos.org/climatologie/climat-de-la-france-cartes-donnees-stations/station/75114001/2025/02" target="_blank" rel="noopener">Keraunos</a>, qui relaie les données Météo-France. Contrôles faits : les moyennes mensuelles recalculées retombent sur celles affichées, et le record du 25 juillet 2019 (42,6 °C) correspond à la <a href="https://object.files.data.gouv.fr/meteofrance/data/synchro_ftp/REF_STATION/FICHECLIM_75114001.pdf" target="_blank" rel="noopener">fiche climatologique</a>. À remplacer par le fichier officiel de data.gouv.fr.</td></tr>
+          <tr><td>Écart de chaleur entre quartiers de Paris</td><td><span class="badge b-pub">Ordre de grandeur publié</span></td><td>La <a href="https://cdn.paris.fr/paris/2019/07/24/b73bf8906326eac58175729370d79a02.pdf" target="_blank" rel="noopener">Ville de Paris</a> cite jusqu'à 12 °C d'écart la nuit entre Paris et ses alentours en canicule, et des parcs 1 à 2 °C plus frais que leur voisinage. Notre carte reste volontairement plus prudente (centre environ 1,5 °C plus chaud que Montsouris).</td></tr>
+          <tr><td>Carte des îlots de chaleur par quartier</td><td><span class="badge b-est">Estimé</span></td><td>Distance au centre, densité de l'arrondissement, parcs et Seine. Les poids sont ceux de Fournaise, non calés sur des mesures ; la densité par arrondissement est un jugement. Prévu : températures de surface Landsat et mesures des stations de la Ville.</td></tr>
+          <tr><td>Réchauffement en 2050</td><td><span class="badge b-pub">Publié</span> + <span class="badge b-est">Estimé</span></td><td>TRACC : +2 °C en 2030, +2,7 °C en 2050, +4 °C en 2100 (<a href="https://www.ecologie.gouv.fr/sites/default/files/documents/27012026_DP_TRACC.pdf" target="_blank" rel="noopener">ministère</a>). Le décalage appliqué aux étés (+1,2 °C la nuit, +1,4 °C le jour par rapport à 2017-2026) est une conversion de Fournaise ; le dossier ne donne pas de chiffre d'été.</td></tr>
+          <tr><td>Seuil de nuit étouffante : 26 °C, très difficile : 28 °C</td><td><span class="badge b-cho">Choix</span></td><td>L'OMS recommande de rester sous 24 °C la nuit (rapporté par <a href="https://fr.euronews.com/sante/2026/08/19/les-nuits-chaudes-perturbent-votre-sommeil-et-nuisent-a-votre-sante-comment-reagir" target="_blank" rel="noopener">Euronews</a>). Les seuils de Fournaise sont un parti pris, modifiable dans <code>js/model.js</code>.</td></tr>
+          <tr><td>Effet du toit, du soleil, du vitrage, des volets, de la ventilation</td><td><span class="badge b-est">Estimé</span></td><td>Coefficients physiquement plausibles mais non calés sur des mesures dans des logements. La logique suit le confort d'été du DPE : sans protection solaire sur les fenêtres sud, est ou ouest, ou au dernier étage sous une toiture non isolée, le logement est classé « insuffisant » (<a href="https://www.connaissancedesenergies.org/afp/logements-isoles-pour-lhiver-mais-etouffants-lete-les-limites-du-dpe-260712" target="_blank" rel="noopener">AFP</a>).</td></tr>
+          <tr><td>Contours des arrondissements</td><td><span class="badge b-mes">Publié</span></td><td>Ville de Paris, open data, via le projet click_that_hood.</td></tr>
+          <tr><td>Position des parcs, bois et de la Seine</td><td><span class="badge b-est">Estimé</span></td><td>Centres et rayons approximatifs, à remplacer par les emprises OpenStreetMap ou de la Ville de Paris.</td></tr>
+        </tbody>
+      </table></div>
+    </div>
     <div class="grid2">
       <div class="card">
         <h3>Données utilisées</h3>
         <ul class="sources" style="margin-top:10px">
           <li>Relevés quotidiens de Paris-Montsouris (Météo-France, station 75114001), lus sur <a href="https://www.keraunos.org/climatologie/climat-de-la-france-cartes-donnees-stations/station/75114001/2025/02" target="_blank" rel="noopener">Keraunos</a>, normales 1991-2020 de la <a href="https://object.files.data.gouv.fr/meteofrance/data/synchro_ftp/REF_STATION/FICHECLIM_75114001.pdf" target="_blank" rel="noopener">fiche climatologique</a>.</li>
-          <li>Trajectoire de réchauffement de référence pour l'adaptation (TRACC), ministère de la Transition écologique.</li>
+          <li>Trajectoire de réchauffement de référence (TRACC) : <a href="https://www.ecologie.gouv.fr/sites/default/files/documents/27012026_DP_TRACC.pdf" target="_blank" rel="noopener">dossier de presse du ministère de la Transition écologique</a>.</li>
           <li>Limites des arrondissements : Ville de Paris (open data).</li>
           <li>Géocodage : Base Adresse Nationale, service de la Géoplateforme (IGN), quand il est joignable.</li>
           <li>Espaces verts et Seine : tracés simplifiés à partir des emprises connues.</li>
@@ -627,7 +653,7 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
       <h2>Questions fréquentes</h2>
     </div>
     <div class="faq">
-      <details><summary>Pourquoi 26 °C dans la chambre ?</summary><p>Au-delà d'environ 26 °C, le corps n'arrive plus à baisser sa température pour s'endormir : le sommeil se fragmente. C'est le seuil retenu ici pour parler de nuit étouffante. Au-dessus de 28 °C, le sommeil devient franchement mauvais.</p></details>
+      <details><summary>Pourquoi 26 °C dans la chambre ?</summary><p>L'OMS recommande de garder la chambre sous 24 °C la nuit. Fournaise retient 26 °C comme seuil de nuit étouffante et 28 °C comme nuit très difficile : c'est un choix de modélisation, pas une valeur réglementaire. Un seuil de 24 °C donnerait plus de nuits étouffantes.</p></details>
       <details><summary>Mes réponses sont-elles envoyées quelque part ?</summary><p>Non. Le calcul se fait entièrement dans ton navigateur. Seule la recherche d'adresse interroge la Base Adresse Nationale, un service public, avec le texte que tu tapes.</p></details>
       <details><summary>Je ne connais pas les réponses, que faire ?</summary><p>Choisis « Je ne sais pas ». Le score est quand même calculé avec des valeurs moyennes, mais le niveau de confiance baisse et la fourchette s'élargit. La section « À demander pendant la visite » liste les questions qui comptent le plus.</p></details>
       <details><summary>Et en dehors de Paris ?</summary><p>Pas encore. Chaque ville demande sa station météo et sa carte de chaleur. Lyon, Marseille et Toulouse sont les prochaines.</p></details>
@@ -996,10 +1022,11 @@ window.FOURNAISE_DATA.arrondissements = [{"n":1,"name":"Louvre","rings":[[[2.320
     return VERDICTS[VERDICTS.length - 1];
   }
 
-  // Projection 2050 : écarts estivaux par rapport à la période 2017-2026, d'après la
-  // trajectoire de réchauffement de référence (TRACC : France +2,7 °C en 2050 contre
-  // environ +1,8 °C au début des années 2020), avec un été qui se réchauffe ~1,3 fois
-  // plus vite que l'année. Fourchette basse et haute pour l'incertitude des modèles.
+  // Projection 2050 : écarts estivaux par rapport à 2017-2026.
+  // Source publiée : TRACC, France hexagonale +2 °C en 2030, +2,7 °C en 2050, +4 °C en 2100
+  // (ministère de la Transition écologique, 27/01/2026). Le passage à un écart d'été
+  // (+1,2 °C la nuit, +1,4 °C le jour) est une ESTIMATION de Fournaise : le document ne
+  // donne pas de chiffre estival. Fourchette basse et haute pour l'incertitude des modèles.
   var SCENARIOS_2050 = {
     low: { tn: 0.6, tx: 0.7, label: "fourchette basse" },
     central: { tn: 1.2, tx: 1.4, label: "trajectoire de référence (TRACC)" },

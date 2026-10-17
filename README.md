@@ -71,6 +71,10 @@ La fourchette de nuits s'élargit quand la confiance baisse.
 - Caler le modèle sur des mesures réelles (quelques capteurs dans des chambres de bonne cet été).
 - Lyon, Marseille, Toulouse : il suffit d'une station de référence, d'un contour et d'une carte de chaleur.
 
+## Niveau de preuve des données
+
+La page contient un tableau « Sources et niveau de preuve » qui classe chaque donnée : mesurée, publiée, estimée ou choisie. En résumé : les températures sont mesurées (Météo-France, Paris-Montsouris) ; la TRACC (+2,7 °C en 2050) et l'ordre de grandeur de l'îlot de chaleur (jusqu'à 12 °C la nuit, parcs 1 à 2 °C plus frais, Ville de Paris) sont publiés ; la carte de chaleur, les coefficients du bâtiment, la conversion à l'été 2050 et le seuil de 26 °C (l'OMS recommande 24 °C) sont des estimations ou des choix de Fournaise.
+
 ## Sources
 
 - Relevés quotidiens Paris-Montsouris (station 75114001), lus sur keraunos.org ; normales 1991-2020 de la fiche

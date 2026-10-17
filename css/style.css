@@ -364,3 +364,12 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
 .score { animation: pop 0.45s ease; }
 @keyframes pop { from { transform: scale(0.94); opacity: 0.4; } to { transform: none; opacity: 1; } }
 @media (max-width: 520px) { .hero-cta .btn { flex: 1 1 100%; } .trust { flex-direction: column; gap: 4px; } }
+.src td:first-child { min-width: 11rem; font-weight: 500; }
+.src td:nth-child(2) { white-space: nowrap; }
+.src td:nth-child(3) { color: var(--muted); font-size: 0.85rem; min-width: 18rem; }
+.src a { color: var(--ink); }
+.badge { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; border: 1px solid currentColor; margin: 1px 0; }
+.b-mes { color: var(--ok); }
+.b-pub { color: var(--focus); }
+.b-est { color: var(--warn); }
+.b-cho { color: var(--muted); }
