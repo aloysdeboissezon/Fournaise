@@ -15,7 +15,7 @@ fonts = "https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&fam
 BASE = "https://aloysdeboissezon.github.io/Fournaise/"
 body = re.sub(r'href="(mentions-legales|confidentialite|donnees-licences)\.html"', lambda m: 'href="' + BASE + m.group(1) + '.html"', body)
 css = read("css/style.css")
-scripts = "".join("<script>\n" + read(p) + "\n</script>\n" for p in ("js/data-paris.js", "js/data-heat.js", "js/model.js", "js/app.js", "js/share.js", "js/guide.js"))
+scripts = "".join("<script>\n" + read(p) + "\n</script>\n" for p in ("js/data-paris.js", "js/data-heat.js", "js/model.js", "js/app.js", "js/share.js", "js/guide.js", "js/heatwave.js", "js/canicule.js"))
 
 page = f"""<title>Fournaise</title>
 <meta name="claude:viewport-fit-sides" content="cover">

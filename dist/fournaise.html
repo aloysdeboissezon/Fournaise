@@ -633,9 +633,29 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 .tip-tenant::before { content: "✓ "; }
 .tip-tenant.ask::before { content: "! "; }
 .tip-tenant.no::before { content: "✗ "; }
-.tip-tenant.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.tip-tenant.ok { color: color-mix(in srgb, var(--ok) 75%, var(--ink)); background: color-mix(in srgb, var(--ok) 12%, transparent); }
 .tip-tenant.ask { color: color-mix(in srgb, var(--warn) 75%, var(--ink)); background: color-mix(in srgb, var(--warn) 14%, transparent); }
 .tip-tenant.no { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
+
+/* ---- Alerte canicule ---- */
+.alert-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; align-items: start; }
+.al-card { display: grid; gap: 12px; align-content: start; }
+.al-card h3 { font-size: 1.05rem; }
+.al-card .btn { justify-self: start; }
+.al-plan { grid-column: 1 / -1; }
+.al-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.al-status { margin: 0; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); border-left: 4px solid var(--ok); }
+.al-status.tropical { border-left-color: var(--warn); }
+.al-status.wave { border-left-color: var(--bad); background: color-mix(in srgb, var(--bad) 9%, var(--surface)); }
+.al-days { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.al-days li { display: grid; justify-items: center; gap: 4px; padding: 6px 2px; border-radius: var(--radius-sm); font-size: 0.8rem; }
+.al-days li.hot { background: color-mix(in srgb, var(--bad) 10%, transparent); }
+.al-vals { display: grid; justify-items: center; line-height: 1.2; color: var(--muted); }
+.al-vals b { color: var(--ink); font-family: var(--font-data); }
+.al-bars { display: flex; align-items: flex-end; gap: 3px; height: 70px; }
+.al-bars i { display: block; width: 9px; border-radius: 3px 3px 0 0; }
+.al-day { color: var(--muted); font-size: 0.74rem; text-align: center; }
+@media (max-width: 420px) { .al-bars i { width: 7px; } .al-days { gap: 2px; } }
 
 </style>
 <noscript><p class="noscript">Fournaise calcule le score dans ton navigateur : active JavaScript pour l'utiliser.</p></noscript>
@@ -647,6 +667,7 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
       <a href="#outil">Le score</a>
       <a href="#etes">Tes étés</a>
       <a href="#conseils">Conseils</a>
+      <a href="#alerte">Canicule</a>
       <a href="#methode">Méthode</a>
       <a href="#faq">Questions</a>
     </nav>
@@ -865,6 +886,36 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
     </div>
     <div class="advice" id="advice"></div>
     <p class="caption">Les coûts sont des fourchettes indicatives TTC : avec un lien « source », le chiffre vient de cette page ; sinon c'est une estimation de Fournaise, à confirmer par un devis. En location, une transformation du logement demande l'accord écrit du propriétaire (article 7 f de la loi du 6 juillet 1989), et une façade peut dépendre du règlement de copropriété. Les nuits gagnées sont calculées par le modèle, pas les coûts.</p>
+  </section>
+
+  <section class="wrap section" id="alerte">
+    <div class="section-head">
+      <h2>Alerte canicule</h2>
+      <p>Sans compte et sans serveur : ta prévision à 7 jours, les gestes adaptés à ton logement, un rappel dans ton agenda et, si tu l'autorises, une notification à l'ouverture du site.</p>
+    </div>
+    <div class="alert-grid">
+      <div class="card al-card">
+        <h3>Prévision à 7 jours</h3>
+        <p class="note" id="al-loc"></p>
+        <button class="btn" type="button" id="al-check">Voir la prévision</button>
+        <div id="al-result" aria-live="polite"></div>
+      </div>
+      <div class="card al-card">
+        <h3>Être prévenu</h3>
+        <div class="al-actions">
+          <button class="btn hot" type="button" id="al-notif" aria-pressed="false">Me prévenir à l'ouverture du site</button>
+          <button class="btn ghost" type="button" id="al-year-ics">Rappel chaque 1er juin (agenda)</button>
+          <button class="btn ghost" type="button" id="al-wave-ics" hidden>Ajouter cette vague à l'agenda</button>
+          <a class="btn ghost" href="https://vigilance.meteofrance.fr/fr" target="_blank" rel="noopener">Vigilance Météo-France</a>
+        </div>
+        <p class="note" id="al-notif-note" role="status"></p>
+        <p class="caption">Les notifications partent quand tu ouvres le site, et en arrière-plan seulement si ton navigateur le permet (surtout Chrome sur Android, site installé). Sur iPhone, rien n'arrive site fermé. Une alerte par e-mail demande un service d'envoi externe : elle n'est pas encore branchée.</p>
+      </div>
+      <div class="card al-card al-plan">
+        <h3>Quand il fait très chaud, chez toi</h3>
+        <ul class="questions" id="al-plan-list"></ul>
+      </div>
+    </div>
   </section>
 
   <section class="wrap section grid2" id="partage">
@@ -3505,6 +3556,273 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
     // Un lien partagé ou une adresse déjà choisie arrive avec toutes ses réponses : le formulaire complet est plus parlant.
     var fromLink = /[?&]floor=/.test(location.search);
     setMode(fromLink ? "full" : saved() === "full" ? "full" : "quick", false);
+  }
+  wire();
+})();
+
+</script>
+<script>
+/* Fournaise — détection d'une vague de chaleur dans une prévision à 7 jours (Open-Meteo).
+   Partagé par la page et par le service worker (sw.js) : pas de DOM ici. */
+(function (root) {
+  "use strict";
+  // Ordre de grandeur des seuils de vigilance canicule de Paris : moyennes sur 3 jours de Tn ≥ 21 °C et de Tx ≥ 31 °C.
+  // Ce n'est pas la vigilance officielle de Météo-France, qui dépend du département et de sa propre méthode.
+  var TN = 21, TX = 31;
+
+  function url(lat, lon) {
+    return "https://api.open-meteo.com/v1/forecast?latitude=" + lat.toFixed(2) + "&longitude=" + lon.toFixed(2) +
+      "&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FParis&forecast_days=7";
+  }
+
+  // days : [{ date: "2026-07-01", tx, tn }]. Renvoie les jours dans une fenêtre de 3 jours au-dessus des seuils.
+  function analyze(days) {
+    var wave = days.map(function () { return false; });
+    for (var i = 0; i + 2 < days.length; i++) {
+      var tn = (days[i].tn + days[i + 1].tn + days[i + 2].tn) / 3, tx = (days[i].tx + days[i + 1].tx + days[i + 2].tx) / 3;
+      if (tn >= TN && tx >= TX) { wave[i] = wave[i + 1] = wave[i + 2] = true; }
+    }
+    var first = wave.indexOf(true), last = wave.lastIndexOf(true);
+    var tropical = days.filter(function (d) { return d.tn >= 20; }).length;
+    return {
+      level: first >= 0 ? "wave" : tropical ? "tropical" : "calm",
+      from: first >= 0 ? days[first].date : null, to: first >= 0 ? days[last].date : null,
+      wave: wave, tropical: tropical, maxTx: Math.max.apply(null, days.map(function (d) { return d.tx; })),
+      maxTn: Math.max.apply(null, days.map(function (d) { return d.tn; }))
+    };
+  }
+
+  function parse(json) {
+    var d = json && json.daily;
+    if (!d || !d.time || !d.temperature_2m_max || !d.temperature_2m_min) throw new Error("prévision illisible");
+    return d.time.map(function (t, i) { return { date: t, tx: d.temperature_2m_max[i], tn: d.temperature_2m_min[i] }; })
+      .filter(function (x) { return typeof x.tx === "number" && typeof x.tn === "number"; });
+  }
+
+  function dayName(date, opts) {
+    return new Date(date + "T12:00:00").toLocaleDateString("fr-FR", opts || { weekday: "long", day: "numeric", month: "long" });
+  }
+
+  function message(a) {
+    if (a.level !== "wave") return "";
+    var from = dayName(a.from, { weekday: "long", day: "numeric" }), to = dayName(a.to, { weekday: "long", day: "numeric" });
+    return "Vague de chaleur annoncée du " + from + (a.from === a.to ? "" : " au " + to) + " : ferme les volets côté soleil dès le matin, ouvre en grand quand la nuit rafraîchit.";
+  }
+
+  var api = { TN: TN, TX: TX, url: url, analyze: analyze, parse: parse, dayName: dayName, message: message };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.FournaiseHeat = api;
+})(typeof self !== "undefined" ? self : this);
+
+</script>
+<script>
+/* Fournaise — alerte canicule sans serveur : prévision à 7 jours, plan adapté au logement, notification à l'ouverture,
+   rappels dans l'agenda. Dépend de js/app.js et js/heatwave.js. Rien n'est envoyé à Fournaise : la prévision vient d'Open-Meteo,
+   appelée seulement quand tu le demandes, avec une position arrondie à environ 1 km. */
+(function () {
+  "use strict";
+  var A = window.FournaiseApp, H = window.FournaiseHeat;
+  if (!A || !H) return;
+  var $ = function (id) { return document.getElementById(id); };
+  var KEY = "fournaise-alert";
+  var VIGILANCE = "https://vigilance.meteofrance.fr/fr";
+  var last = null;   // { days, a, loc }
+
+  function read() { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } }
+  function write(v) {
+    try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {}
+    // Copie lisible par le service worker (qui n'a pas accès à localStorage).
+    if (window.caches) caches.open("fournaise-prefs").then(function (c) { return c.put("prefs", new Response(JSON.stringify(v))); }).catch(function () {});
+  }
+  function here() {
+    var l = A.state.location;
+    return l ? { lat: Math.round(l.lat * 100) / 100, lon: Math.round(l.lon * 100) / 100, label: l.label } : null;
+  }
+
+  // ---------------------------------------------------------------- prévision
+  function fetchForecast(loc) {
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 8000);
+    return fetch(H.url(loc.lat, loc.lon), ctrl ? { signal: ctrl.signal } : {}).then(function (r) {
+      clearTimeout(timer);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (j) { var days = H.parse(j); return { days: days, a: H.analyze(days), loc: loc }; }, function (e) { clearTimeout(timer); throw e; });
+  }
+
+  function renderForecast(f) {
+    var days = f.days, a = f.a, box = $("al-result");
+    var max = Math.max(36, Math.ceil(a.maxTx)), min = 8;
+    var h = function (t) { return Math.max(4, ((t - min) / (max - min)) * 100).toFixed(0); };
+    var title = a.level === "wave" ? "Vague de chaleur possible du " + H.dayName(a.from) + (a.from === a.to ? "" : " au " + H.dayName(a.to))
+      : a.level === "tropical" ? "Pas de vague de chaleur, mais " + a.tropical + " nuit" + (a.tropical > 1 ? "s" : "") + " au-dessus de 20 °C"
+      : "Pas de vague de chaleur prévue ces 7 prochains jours";
+    box.innerHTML =
+      '<p class="al-status ' + a.level + '"><strong>' + A.escapeHtml(title) + "</strong></p>" +
+      '<ol class="al-days" aria-label="Prévision des 7 prochains jours à ' + A.escapeHtml(f.loc.label || "ce logement") + '">' + days.map(function (d, i) {
+        return '<li class="' + (a.wave[i] ? "hot" : "") + '"><span class="al-vals"><b>' + Math.round(d.tx) + '°</b><span>' + Math.round(d.tn) + '°</span></span>' +
+          '<span class="al-bars" aria-hidden="true"><i style="height:' + h(d.tx) + "%;background:" + A.tempColor(d.tx - 2) + '"></i><i style="height:' + h(d.tn) + "%;background:" + A.tempColor(d.tn + 3) + '"></i></span>' +
+          '<span class="al-day">' + A.escapeHtml(H.dayName(d.date, { weekday: "short", day: "numeric" })) + "</span>" +
+          '<span class="sr-only">maximum ' + Math.round(d.tx) + " degrés, minimum " + Math.round(d.tn) + " degrés" + (a.wave[i] ? ", chaleur forte" : "") + "</span></li>";
+      }).join("") + "</ol>" +
+      '<p class="caption">Maximum en gras, minimum en dessous. Repère : Fournaise parle de vague quand la moyenne sur 3 jours dépasse environ 21 °C la nuit et 31 °C le jour (ordre de grandeur de Paris). La vigilance officielle est celle de <a href="' + VIGILANCE + '" target="_blank" rel="noopener">Météo-France</a>. Prévisions : <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, position arrondie à environ 1 km.</p>';
+    $("al-wave-ics").hidden = a.level !== "wave";
+  }
+
+  function check() {
+    var loc = here(), btn = $("al-check"), box = $("al-result");
+    if (!loc) { box.textContent = "Choisis d'abord un logement."; return Promise.resolve(); }
+    btn.disabled = true; btn.textContent = "Chargement…";
+    box.textContent = "";
+    A.track("canicule-prevision");
+    return fetchForecast(loc).then(function (f) { last = f; renderForecast(f); }, function () {
+      box.innerHTML = '<p class="note warn">La prévision n\'a pas pu être chargée (réseau ou service indisponible). Consulte directement la <a href="' + VIGILANCE + '" target="_blank" rel="noopener">vigilance Météo-France</a>.</p>';
+    }).then(function () { btn.disabled = false; btn.textContent = "Actualiser la prévision"; });
+  }
+
+  // ---------------------------------------------------------------- plan adapté au logement
+  function plan() {
+    var p = A.state.profile, items = [];
+    var sunny = p.orient === "S" || p.orient === "W" || p.orient === "E" || p.orient === "unknown";
+    var top = p.floor === "roof" || p.floor === "top";
+    if (p.shutters === "ext") items.push(["Matin", "Ferme les volets ou les stores extérieurs du côté du soleil avant 9 h, et garde-les fermés tant qu'il fait chaud."]);
+    else if (p.shutters === "int") items.push(["Matin", "Tire les rideaux côté soleil dès le matin, de préférence clairs et épais. Ils arrêtent la lumière mais gardent la moitié de la chaleur : une toile claire tendue à l'extérieur fait mieux."]);
+    else items.push(["Matin", "Sans volets ni rideaux, une couverture de survie ou un drap clair tendu contre la vitre, côté " + (sunny ? "soleil" : "sud et ouest") + ", arrête une bonne part du soleil."]);
+    items.push(["Journée", "Garde les fenêtres fermées tant qu'il fait plus chaud dehors que dedans. Éteins les appareils inutiles : chacun est un petit radiateur."]);
+    if (top) items.push(["Journée", "Sous le toit, la pièce chauffe jusqu'au soir : passe l'après-midi dans un lieu frais (bibliothèque, commerce climatisé, parc ombragé) si tu peux."]);
+    if (p.ac === "yes") items.push(["Soirée", "Clim à 26 °C plutôt que moins, fenêtres fermées, filtres propres : elle consomme moins et tu supportes mieux l'écart avec dehors."]);
+    else if (p.nightOpen === "no") items.push(["Soirée", "Tu ne peux pas ouvrir la nuit : essaie la fenêtre côté cour, une moustiquaire, ou aère à l'aube (vers 5 h ou 6 h), quand l'air est le plus frais."]);
+    else if (p.traversant === "yes") items.push(["Soirée", "Dès que l'air dehors est plus frais que dedans (souvent après 22 h), ouvre les deux façades en grand : le courant d'air vide la chaleur."]);
+    else items.push(["Soirée", "Ouvre en grand dès que l'air dehors est plus frais que dedans, et pose un ventilateur dans la fenêtre, tourné vers l'extérieur, pour aspirer l'air chaud."]);
+    items.push(["Nuit", "Un ventilateur dirigé vers le lit, un drap humide essoré ou une bouillotte d'eau froide aident. Si la chambre reste étouffante, dors dans la pièce la plus fraîche, la plus basse ou côté nord."]);
+    items.push(["Santé", "Bois régulièrement, même sans soif. Si tu es isolé ou fragile, inscris-toi au registre canicule de ta mairie. Malaise, confusion ou forte fièvre : appelle le 15."]);
+    return items;
+  }
+  function renderPlan() {
+    $("al-plan-list").innerHTML = plan().map(function (it) {
+      return '<li><span class="tag">' + it[0] + "</span><span>" + A.escapeHtml(it[1]) + "</span></li>";
+    }).join("");
+    var loc = here();
+    $("al-loc").textContent = loc ? loc.label : "Aucun logement choisi";
+    var st = read();
+    var on = !!(st && st.on);
+    $("al-notif").setAttribute("aria-pressed", on ? "true" : "false");
+    $("al-notif").textContent = on ? "Notifications activées (désactiver)" : "Me prévenir à l'ouverture du site";
+  }
+
+  // ---------------------------------------------------------------- notification à l'ouverture
+  function notify(text, tag) {
+    var opts = { body: text, tag: tag || "fournaise-canicule", icon: "img/icon-192.png", badge: "img/icon-192.png", data: { url: "./#alerte" } };
+    var title = "Fournaise : vague de chaleur";
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+      return navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (reg && reg.showNotification) return reg.showNotification(title, opts);
+        new Notification(title, opts);
+      });
+    }
+    new Notification(title, opts);
+    return Promise.resolve();
+  }
+
+  function enable() {
+    var loc = here();
+    if (!loc) { A.toast("Choisis d'abord un logement."); return; }
+    if (!("Notification" in window)) { $("al-notif-note").textContent = "Ce navigateur ne sait pas afficher de notifications. L'agenda ci-dessous marche partout."; return; }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") { $("al-notif-note").textContent = "Notifications refusées dans le navigateur. Tu peux les autoriser dans les réglages du site, ou utiliser l'agenda."; return; }
+      A.track("canicule-notifications");
+      write({ on: true, lat: loc.lat, lon: loc.lon, label: loc.label, lastWave: "", lastCheck: 0 });
+      $("al-notif-note").textContent = "C'est noté pour " + loc.label + ". Le site vérifie la prévision à chaque ouverture, et en tâche de fond si ton navigateur le permet.";
+      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then(function (reg) {
+          if (reg.periodicSync) reg.periodicSync.register("fournaise-canicule", { minInterval: 12 * 3600 * 1000 }).catch(function () {});
+        }).catch(function () {});
+      }
+      renderPlan();
+      checkOnOpen(true);
+    });
+  }
+  function disable() {
+    write({ on: false });
+    $("al-notif-note").textContent = "Notifications désactivées.";
+    renderPlan();
+  }
+
+  // À l'ouverture : au plus une vérification toutes les 6 heures, une notification par vague.
+  function checkOnOpen(force) {
+    var st = read();
+    if (!st || !st.on || !("Notification" in window) || Notification.permission !== "granted") return;
+    if (!force && Date.now() - (st.lastCheck || 0) < 6 * 3600 * 1000) return;
+    fetchForecast({ lat: st.lat, lon: st.lon, label: st.label }).then(function (f) {
+      st.lastCheck = Date.now();
+      if (f.a.level === "wave" && st.lastWave !== f.a.from) {
+        st.lastWave = f.a.from;
+        notify(H.message(f.a) + (st.label ? " (" + st.label + ")" : ""));
+      }
+      write(st);
+    }, function () {});
+  }
+
+  // ---------------------------------------------------------------- agenda (.ics)
+  function esc(t) { return String(t).replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\n/g, "\\n"); }
+  function fold(line) {
+    var out = [];
+    while (line.length > 60) { out.push(line.slice(0, 60)); line = " " + line.slice(60); }
+    out.push(line);
+    return out.join("\r\n");
+  }
+  function ymd(date) { return date.replace(/-/g, ""); }
+  function nextDay(date) { var d = new Date(date + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10).replace(/-/g, ""); }
+  function ics(events) {
+    var stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+    var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Fournaise//Alerte canicule//FR", "CALSCALE:GREGORIAN"];
+    events.forEach(function (e, i) {
+      lines.push("BEGIN:VEVENT", "UID:fournaise-" + stamp + "-" + i + "@aloysdeboissezon.github.io", "DTSTAMP:" + stamp,
+        "DTSTART;VALUE=DATE:" + e.start, "DTEND;VALUE=DATE:" + e.end, "SUMMARY:" + esc(e.title), "DESCRIPTION:" + esc(e.text));
+      if (e.rrule) lines.push("RRULE:" + e.rrule);
+      lines.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + esc(e.title), "TRIGGER:" + (e.trigger || "-PT12H"), "END:VALARM", "END:VEVENT");
+    });
+    lines.push("END:VCALENDAR");
+    return lines.map(fold).join("\r\n") + "\r\n";
+  }
+  function planText() { return plan().map(function (it) { return it[0] + " : " + it[1]; }).join("\n") + "\n\nPrévision et score : " + A.siteHost(); }
+  function download(name, text) {
+    var blob = new Blob([text], { type: "text/calendar;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  function yearlyIcs() {
+    var y = new Date().getFullYear(), start = y + "0601";
+    if (new Date() > new Date(y + "-06-01T12:00:00")) start = (y + 1) + "0601";
+    download("fournaise-preparer-l-ete.ics", ics([{
+      start: start, end: start.slice(0, 4) + "0602", rrule: "FREQ=YEARLY", trigger: "PT9H",
+      title: "Préparer l'été : volets, ventilateur, moustiquaire",
+      text: "Avant les premières chaleurs, vérifie :\n" + planText()
+    }]));
+    A.track("canicule-agenda-annuel");
+    A.toast("Rappel du 1er juin téléchargé : ouvre-le pour l'ajouter à ton agenda.");
+  }
+  function waveIcs() {
+    if (!last || last.a.level !== "wave") return;
+    download("fournaise-vague-de-chaleur.ics", ics([{
+      start: ymd(last.a.from), end: nextDay(last.a.to),
+      title: "Vague de chaleur annoncée : " + (last.loc.label || "ton logement"),
+      text: H.message(last.a) + "\n\n" + planText()
+    }]));
+    A.track("canicule-agenda-vague");
+    A.toast("Vague de chaleur téléchargée : ouvre le fichier pour l'ajouter à ton agenda.");
+  }
+
+  function wire() {
+    $("al-check").addEventListener("click", check);
+    $("al-notif").addEventListener("click", function () { var st = read(); if (st && st.on) disable(); else enable(); });
+    $("al-year-ics").addEventListener("click", yearlyIcs);
+    $("al-wave-ics").addEventListener("click", waveIcs);
+    document.addEventListener("fournaise:update", function () { renderPlan(); });
+    renderPlan();
+    checkOnOpen(false);
   }
   wire();
 })();

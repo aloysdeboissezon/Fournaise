@@ -33,7 +33,10 @@ tests/                     tests du modèle (node --test), budget de poids, acce
 .github/workflows/ci.yml   lance ces tests à chaque envoi
 css/style.css              styles, thème clair et sombre
 js/model.js                modèle de calcul, tous les coefficients en clair
-js/app.js                  interface : formulaire, carte, graphiques, partage
+js/app.js                  interface : formulaire, carte (zoom, recherche), graphiques, comparaison, conseils chiffrés
+js/share.js                carte de partage (image story ou post)
+js/guide.js                mode rapide (4 questions) et résultat animé
+js/heatwave.js, js/canicule.js  alerte canicule sans serveur (prévision, notification, agenda)
 js/data-paris.js           relevés Montsouris et contours des 142 communes et arrondissements (générés, ne pas éditer)
 js/data-heat.js            carte de chaleur d'ensemble (400 m) et tracé de l'eau, embarqués (générés par build_heat.py)
 data/montsouris-raw/       relevés quotidiens Tn/Tx de Paris-Montsouris, juin-septembre 2017-2026
@@ -132,6 +135,22 @@ python3 scripts/build_artifact.py       # dist/fournaise.html
 
 Les services publics coupent souvent les longues réponses : les scripts réessaient. Landsat demande `rasterio` et
 `pyproj` (`pip install rasterio pyproj`).
+
+## Alerte canicule
+
+Ce qui marche aujourd'hui, sans serveur : la prévision à 7 jours de l'adresse (Open-Meteo, appelée seulement au clic), le plan de gestes adapté
+au logement, le rappel du 1er juin et la vague de chaleur dans l'agenda (fichiers .ics), un lien vers la vigilance Météo-France et une
+notification à l'ouverture du site (`js/canicule.js`, `js/heatwave.js`). En arrière-plan, la synchronisation périodique du service worker
+(`sw.js`) ne joue que sur Chrome pour Android avec le site installé ; sur iPhone rien n'arrive site fermé.
+
+Le seuil « vague de chaleur » (moyenne sur 3 jours de Tn ≥ 21 °C et Tx ≥ 31 °C) est l'ordre de grandeur de Paris, pas la vigilance officielle.
+
+**Alerte par e-mail : pas branchée.** Elle demande un service qui garde les adresses et envoie les messages, ce qu'un site statique ne peut pas faire.
+Le chemin gratuit le plus simple : un service de newsletter à formulaire intégré (par exemple Buttondown ou Brevo, offres gratuites à vérifier à l'inscription)
+et une tâche planifiée GitHub Actions qui lit la prévision Open-Meteo pour Paris et déclenche l'envoi par l'API du service quand `FournaiseHeat.analyze`
+(`js/heatwave.js`, déjà testé) renvoie « wave ». Ce que cela demande : créer le compte, déposer la clé d'API dans les secrets du dépôt, ajouter le formulaire
+d'inscription au site, et mettre à jour `confidentialite.html` (collecte d'adresses e-mail, désinscription, durée de conservation). Une alerte par logement
+(conseils selon l'étage, par exemple) demanderait en plus de stocker la position de chaque inscrit, donc une vraie base de données.
 
 ## Ce qui reste à faire
 

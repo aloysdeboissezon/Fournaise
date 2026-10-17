@@ -3,7 +3,7 @@
   "private": true,
   "description": "Score de chaleur d'un logement à Paris et en petite couronne (site statique)",
   "scripts": {
-    "test": "node --test tests/model.test.js tests/budget.test.js",
+    "test": "node --test tests/model.test.js tests/budget.test.js tests/heatwave.test.js",
     "test:a11y": "node tests/a11y.js",
     "serve": "python3 -m http.server 8080"
   },
