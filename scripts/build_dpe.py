@@ -1,8 +1,9 @@
-"""Regroupe par adresse les DPE de Paris (ADEME) et écrit un fichier JSON par arrondissement.
+"""Regroupe par adresse les DPE (ADEME) et écrit un fichier JSON par arrondissement de Paris ou commune.
 
 Usage : python3 scripts/build_dpe.py      (après scripts/fetch_sources.py dpe)
-Entrée  : data/raw/dpe/p*.json (DPE logements existants depuis juillet 2021, département 75)
-Sorties : data/dpe/75101.json … 75120.json, chargés par la page quand une adresse est choisie.
+Entrée  : data/raw/dpe/<département>/p*.json (DPE logements existants depuis juillet 2021) ; seuls les départements
+          téléchargés sont recalculés, les fichiers des autres restent tels quels.
+Sorties : data/dpe/<code INSEE>.json (75101 … 75120, 92002 … 94081), chargés par la page quand une adresse est choisie.
 
 Chaque adresse (identifiant de la Base Adresse Nationale) devient une ligne :
   [numéro BAN sans le code commune, lon, lat, nombre de DPE,
@@ -10,6 +11,8 @@ Chaque adresse (identifiant de la Base Adresse Nationale) devient une ligne :
    traversant [oui, non], année de construction médiane (0 si inconnue),
    étiquettes [A, B, C, D, E, F, G], étage le plus haut renseigné (-1 si inconnu)]
 Plusieurs DPE peuvent concerner le même logement (diagnostic refait) : ce sont des DPE, pas des logements.
+Une adresse dont le code commune n'est pas celui du fichier (commune fusionnée, par exemple Pierrefitte-sur-Seine
+dans Saint-Denis depuis 2025) garde son identifiant BAN complet en première colonne.
 """
 import glob, json, os, re, statistics
 from collections import defaultdict
@@ -20,13 +23,35 @@ OUT = os.path.join(ROOT, "data", "dpe")
 ETE = {"bon": 0, "moyen": 1, "insuffisant": 2}
 ETQ = "ABCDEFG"
 # Seuls les identifiants au numéro (commune_voie_numéro[_suffixe]) sont gardés : les autres ne sont localisés qu'à la rue.
-HOUSENUMBER = re.compile(r"^751\d\d_[0-9a-z]{4}_\d{5}(_[a-z0-9]+)?$")
+HOUSENUMBER = re.compile(r"^(75|92|93|94)\d{3}_[0-9a-z]{4}_\d{5}(_[a-z0-9]+)?$")
+ZONES = json.load(open(os.path.join(ROOT, "data", "zone-communes.geojson")))["features"]
+CODES = {f["properties"]["code"] for f in ZONES}
+
+
+def in_ring(lon, lat, ring):
+    inside = False
+    for (xi, yi), (xj, yj) in zip(ring, ring[-1:] + ring[:-1]):
+        if (yi > lat) != (yj > lat) and lon < (xj - xi) * (lat - yi) / (yj - yi) + xi:
+            inside = not inside
+    return inside
+
+
+def zone_of(ban, lon, lat):
+    """Code du fichier : celui de l'identifiant BAN s'il est dans la zone, sinon la commune qui contient le point."""
+    if ban[:5] in CODES:
+        return ban[:5]
+    for f in ZONES:
+        g = f["geometry"]
+        for poly in g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]:
+            if in_ring(lon, lat, poly[0]):
+                return f["properties"]["code"]
+    return None
 
 
 def main():
     acc = {}
     seen = 0
-    for path in sorted(glob.glob(os.path.join(RAW, "p*.json"))):
+    for path in sorted(glob.glob(os.path.join(RAW, "*", "p*.json"))):
         for r in json.load(open(path))["results"]:
             seen += 1
             ban, geo = r.get("identifiant_ban"), r.get("_geopoint")
@@ -55,7 +80,10 @@ def main():
     by_arr = defaultdict(list)
     for ban, a in acc.items():
         year = int(statistics.median(a["years"])) if a["years"] else 0
-        by_arr[ban[:5]].append([ban[6:], round(a["lon"], 5), round(a["lat"], 5), a["n"], a["ete"], a["prot"], a["trav"],
+        code = zone_of(ban, a["lon"], a["lat"])
+        if code is None:
+            continue
+        by_arr[code].append([ban[6:] if ban[:5] == code else ban, round(a["lon"], 5), round(a["lat"], 5), a["n"], a["ete"], a["prot"], a["trav"],
                                 year, a["etq"], a["floor"]])
     os.makedirs(OUT, exist_ok=True)
     total = 0
