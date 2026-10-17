@@ -76,6 +76,13 @@
 
   <section id="outil" class="tool wrap" aria-label="Calculer le score">
     <form id="form" class="panel form" novalidate>
+      <div class="mode-row">
+        <div class="toggle" id="mode-toggle" role="group" aria-label="Nombre de questions">
+          <button type="button" data-mode="quick" aria-pressed="true">Rapide · 30 secondes</button>
+          <button type="button" data-mode="full" aria-pressed="false">Complet · 10 questions</button>
+        </div>
+        <p class="mode-hint" id="mode-hint">Une adresse et 4 questions suffisent. Le score se précise si tu réponds à plus.</p>
+      </div>
       <div class="examples" id="examples"><span>Exemples :</span></div>
 
       <fieldset>
@@ -119,12 +126,27 @@
         </div>
       </fieldset>
 
-      <fieldset>
+      <section class="wizard" id="wizard" aria-labelledby="wz-title" hidden>
+        <div class="wz-top">
+          <span class="wz-step" id="wz-step"></span>
+          <span class="wz-bar" aria-hidden="true"><span id="wz-fill"></span></span>
+        </div>
+        <h2 id="wz-title" tabindex="-1"></h2>
+        <p class="wz-hint" id="wz-hint"></p>
+        <div class="wz-opts" id="wz-opts"></div>
+        <div class="wz-nav">
+          <button type="button" class="btn ghost" id="wz-back">Retour</button>
+          <button type="button" class="btn" id="wz-next">Suivant</button>
+        </div>
+        <p class="sr-only" id="wz-live" role="status" aria-live="polite"></p>
+      </section>
+
+      <fieldset id="fs-logement">
         <legend>Le logement</legend>
         <div id="q-main" class="refine-body"></div>
       </fieldset>
 
-      <details class="refine" open>
+      <details class="refine" id="refine" open>
         <summary>Pour affiner <span class="hint">le score devient plus fiable</span></summary>
         <div id="q-more" class="refine-body"></div>
       </details>
@@ -396,5 +418,6 @@
 <script defer src="js/analytics.js"></script>
 <script defer src="js/app.js"></script>
 <script defer src="js/share.js"></script>
+<script defer src="js/guide.js"></script>
 </body>
 </html>

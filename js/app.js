@@ -155,7 +155,7 @@
       b.type = "button";
       b.textContent = ex.label;
       b.dataset.example = ex.id;
-      b.addEventListener("click", function () { track("exemple"); loadExample(ex.id); });
+      b.addEventListener("click", function () { track("exemple"); loadExample(ex.id); document.dispatchEvent(new CustomEvent("fournaise:reveal")); });
       box.appendChild(b);
     });
   }
@@ -1487,7 +1487,7 @@
 
   // Ce que les modules complémentaires (js/share.js, …) peuvent utiliser.
   window.FournaiseApp = {
-    state: state, M: M, D: D, ZONES: ZONES,
+    state: state, M: M, D: D, ZONES: ZONES, Q_MAIN: Q_MAIN, syncForm: syncForm, note: note,
     nights: nights, plural: plural, fr: fr, roundNights: roundNights, escapeHtml: escapeHtml,
     scoreColor: scoreColor, tempColor: tempColor, toast: toast, track: track,
     shareLine: shareLine, shareText: shareText, shareUrl: shareUrl,

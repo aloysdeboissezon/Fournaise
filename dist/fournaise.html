@@ -571,6 +571,37 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 .foot-arr { grid-column: 1 / -1; gap: 4px 14px; }
 .topbar-in .grow { flex: 1; }
 
+/* ---- Parcours guidé et résultat animé ---- */
+.mode-row { display: grid; gap: 6px; }
+.mode-hint { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.mode-quick #fs-logement, .mode-quick .refine { display: none; }
+.wizard { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+.wz-top { display: flex; align-items: center; gap: 12px; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.wz-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.wz-bar span { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--h1), var(--h3), var(--h4)); transition: width 0.35s ease; }
+.wizard h2 { font-size: 1.2rem; outline: none; }
+.wz-hint { margin: 0; font-size: 0.9rem; color: var(--muted); }
+.wz-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+.wz-opt { font: inherit; font-weight: 600; min-height: 52px; padding: 10px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-align: left; transition: border-color 0.15s, background 0.15s, transform 0.1s; }
+.wz-opt:hover { border-color: var(--muted); }
+.wz-opt:active { transform: scale(0.98); }
+.wz-opt[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.wz-opt.unknown { font-weight: 500; color: var(--muted); border-style: dashed; }
+.wz-opt.unknown[aria-pressed="true"] { color: var(--bg); border-style: solid; }
+.wz-nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.wz-nav .btn { min-height: 44px; white-space: normal; }
+.wz-nav .btn:disabled { opacity: 0.45; cursor: default; }
+.verdict.revealing .stat, .verdict.revealing .v-label { animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.verdict.revealing .v-label { animation-delay: 0.15s; }
+.verdict.revealing .stat:nth-child(1) { animation-delay: 0.35s; }
+.verdict.revealing .stat:nth-child(2) { animation-delay: 0.6s; }
+.verdict.revealing .stat:nth-child(3) { animation-delay: 0.9s; }
+.verdict.revealing .stat:nth-child(4) { animation-delay: 1.15s; }
+.verdict.revealing .score { animation: score-in 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.verdict.revealing .gauge-mark { transition: left 1.1s cubic-bezier(0.2, 0.7, 0.2, 1); }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes score-in { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: none; } }
+
 </style>
 <noscript><p class="noscript">Fournaise calcule le score dans ton navigateur : active JavaScript pour l'utiliser.</p></noscript>
 <a class="skip" href="#outil">Aller directement à l'outil</a>
@@ -613,6 +644,13 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 
   <section id="outil" class="tool wrap" aria-label="Calculer le score">
     <form id="form" class="panel form" novalidate>
+      <div class="mode-row">
+        <div class="toggle" id="mode-toggle" role="group" aria-label="Nombre de questions">
+          <button type="button" data-mode="quick" aria-pressed="true">Rapide · 30 secondes</button>
+          <button type="button" data-mode="full" aria-pressed="false">Complet · 10 questions</button>
+        </div>
+        <p class="mode-hint" id="mode-hint">Une adresse et 4 questions suffisent. Le score se précise si tu réponds à plus.</p>
+      </div>
       <div class="examples" id="examples"><span>Exemples :</span></div>
 
       <fieldset>
@@ -656,12 +694,27 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
         </div>
       </fieldset>
 
-      <fieldset>
+      <section class="wizard" id="wizard" aria-labelledby="wz-title" hidden>
+        <div class="wz-top">
+          <span class="wz-step" id="wz-step"></span>
+          <span class="wz-bar" aria-hidden="true"><span id="wz-fill"></span></span>
+        </div>
+        <h2 id="wz-title" tabindex="-1"></h2>
+        <p class="wz-hint" id="wz-hint"></p>
+        <div class="wz-opts" id="wz-opts"></div>
+        <div class="wz-nav">
+          <button type="button" class="btn ghost" id="wz-back">Retour</button>
+          <button type="button" class="btn" id="wz-next">Suivant</button>
+        </div>
+        <p class="sr-only" id="wz-live" role="status" aria-live="polite"></p>
+      </section>
+
+      <fieldset id="fs-logement">
         <legend>Le logement</legend>
         <div id="q-main" class="refine-body"></div>
       </fieldset>
 
-      <details class="refine" open>
+      <details class="refine" id="refine" open>
         <summary>Pour affiner <span class="hint">le score devient plus fiable</span></summary>
         <div id="q-more" class="refine-body"></div>
       </details>
@@ -1628,7 +1681,7 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
       b.type = "button";
       b.textContent = ex.label;
       b.dataset.example = ex.id;
-      b.addEventListener("click", function () { track("exemple"); loadExample(ex.id); });
+      b.addEventListener("click", function () { track("exemple"); loadExample(ex.id); document.dispatchEvent(new CustomEvent("fournaise:reveal")); });
       box.appendChild(b);
     });
   }
@@ -2960,7 +3013,7 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
 
   // Ce que les modules complémentaires (js/share.js, …) peuvent utiliser.
   window.FournaiseApp = {
-    state: state, M: M, D: D, ZONES: ZONES,
+    state: state, M: M, D: D, ZONES: ZONES, Q_MAIN: Q_MAIN, syncForm: syncForm, note: note,
     nights: nights, plural: plural, fr: fr, roundNights: roundNights, escapeHtml: escapeHtml,
     scoreColor: scoreColor, tempColor: tempColor, toast: toast, track: track,
     shareLine: shareLine, shareText: shareText, shareUrl: shareUrl,
@@ -3210,6 +3263,175 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
   }
   wire();
   window.FournaiseShare = { draw: draw, FORMATS: FORMATS };
+})();
+
+</script>
+<script>
+/* Fournaise — parcours guidé (mode rapide : une adresse et 4 questions) et résultat qui se dévoile pas à pas.
+   Dépend de js/app.js (window.FournaiseApp). Les réponses passent par les mêmes boutons radio que le formulaire complet. */
+(function () {
+  "use strict";
+  var A = window.FournaiseApp;
+  if (!A) return;
+  var $ = function (id) { return document.getElementById(id); };
+  var form = $("form");
+  var KEYS = ["floor", "orient", "shutters", "ac"];
+  var COPY = {
+    floor: ["À quel étage se trouve le logement ?", "Sous les toits ou au dernier étage, la toiture chauffe la chambre toute la journée."],
+    orient: ["Vers où donnent les fenêtres de la chambre ou du séjour ?", "La boussole du téléphone suffit. Si tu hésites, choisis « Je ne sais pas »."],
+    shutters: ["Comment la fenêtre est-elle protégée du soleil ?", "Un volet ou un store extérieur arrête la chaleur avant la vitre ; un rideau en laisse entrer la moitié."],
+    ac: ["Y a-t-il la climatisation ?", "Avec elle, les nuits étouffantes sont comptées à part : le score dit ce que serait le logement sans."]
+  };
+  var QS = {};
+  A.Q_MAIN.forEach(function (q) { QS[q.key] = q; });
+  var reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var mode = "quick", step = 0, started = false;
+
+  function save(m) { try { localStorage.setItem("fournaise-mode", m); } catch (e) {} }
+  function saved() { try { return localStorage.getItem("fournaise-mode"); } catch (e) { return null; } }
+
+  function setMode(m, focus) {
+    mode = m;
+    form.classList.toggle("mode-quick", m === "quick");
+    form.classList.toggle("mode-full", m === "full");
+    $("wizard").hidden = m !== "quick";
+    Array.prototype.forEach.call($("mode-toggle").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", b.dataset.mode === m ? "true" : "false"); });
+    $("mode-hint").textContent = m === "quick"
+      ? "Une adresse et 4 questions suffisent. Le score se précise si tu réponds à plus."
+      : "Toutes les questions : le score est plus fiable et la plage d'incertitude se resserre.";
+    if (m === "quick") render(focus);
+    save(m);
+  }
+
+  function located() { return !!(A.state.location && !A.state.example); }
+
+  // Étape 0 : l'adresse ; 1 à 4 : les questions ; 5 : récapitulatif.
+  function render(focus) {
+    var total = KEYS.length + 1, title = $("wz-title"), opts = $("wz-opts"), next = $("wz-next"), back = $("wz-back");
+    $("wz-step").textContent = step <= KEYS.length ? "Étape " + (step + 1) + " sur " + total : "Terminé";
+    $("wz-fill").style.width = Math.round(((Math.min(step, KEYS.length) + (step > KEYS.length ? 1 : 0)) / total) * 100) + "%";
+    back.hidden = step === 0;
+    opts.innerHTML = "";
+    $("wz-hint").textContent = "";
+    next.hidden = false;
+    next.disabled = false;
+    if (step === 0) {
+      title.textContent = "Où est le logement ?";
+      $("wz-hint").textContent = located()
+        ? "Adresse prise en compte. Tu peux encore la préciser sur la carte."
+        : "Tape une adresse, cherche-la sur la carte ou touche-la. Un exemple est affiché en attendant.";
+      next.textContent = "Suivant";
+      next.disabled = !located();
+      if (!located()) {
+        var ex = document.createElement("button");
+        ex.type = "button"; ex.className = "linklike"; ex.textContent = "Continuer avec l'exemple affiché";
+        ex.addEventListener("click", function () { step = 1; render(true); });
+        opts.appendChild(ex);
+      }
+    } else if (step <= KEYS.length) {
+      var key = KEYS[step - 1], q = QS[key];
+      title.textContent = COPY[key][0];
+      $("wz-hint").textContent = COPY[key][1];
+      var cur = A.state.profile[key], touched = !!A.state.touched[key];
+      q.opts.forEach(function (o) {
+        var b = document.createElement("button");
+        b.type = "button"; b.textContent = o[1]; b.dataset.value = o[0];
+        b.className = "wz-opt" + (o[0] === "unknown" ? " unknown" : "");
+        b.setAttribute("aria-pressed", touched && cur === o[0] ? "true" : "false");
+        b.addEventListener("click", function () { answer(key, o[0]); });
+        opts.appendChild(b);
+      });
+      next.textContent = step === KEYS.length ? "Voir mon score" : "Suivant";
+      next.disabled = !touched;
+    } else {
+      title.textContent = "Ton score est prêt";
+      var r = A.state.result;
+      $("wz-hint").textContent = "Basé sur " + KEYS.length + " réponses" + (r ? ", niveau de confiance " + r.confidence.label.toLowerCase() : "") +
+        ". Réponds à plus de questions pour le resserrer.";
+      next.textContent = "Affiner avec toutes les questions";
+      back.textContent = "Recommencer";
+    }
+    if (step <= KEYS.length) back.textContent = "Retour";
+    $("wz-live").textContent = title.textContent;
+    if (focus) title.focus({ preventScroll: true });
+  }
+
+  function answer(key, value) {
+    var input = $("f-" + key + "-" + value);
+    if (!input) return;
+    input.checked = true;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    render(false);
+    // La question suivante arrive d'elle-même : un seul tap suffit.
+    var at = step;
+    clearTimeout(answer._t);
+    answer._t = setTimeout(function () { if (mode === "quick" && step === at) advance(); }, reduced ? 0 : 280);
+  }
+
+  function advance() {
+    if (step === 0) { if (!located()) return; step = 1; render(true); return; }
+    if (step < KEYS.length) { step++; render(true); return; }
+    if (step === KEYS.length) { step++; render(true); showResult(); return; }
+    setMode("full");
+    $("refine").open = true;
+    $("fs-logement").scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+  }
+
+  function showResult() {
+    var v = $("verdict");
+    if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) v.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    setTimeout(reveal, reduced ? 0 : 350);
+  }
+
+  // Le résultat se dévoile : score, nuits, 2050, avec un compte à rebours de chaque chiffre.
+  var revealTimer = 0;
+  function tween(el, ms, delay) {
+    var node = el && el.childNodes[0];
+    if (!node || node.nodeType !== 3) return;
+    var final = node.nodeValue, n = parseFloat(final.replace(/[^\d.,]/g, "").replace(",", "."));
+    if (!isFinite(n) || n === 0) return;
+    node.nodeValue = "0";
+    setTimeout(function () {
+      var t0 = performance.now();
+      (function step(now) {
+        var t = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - t, 3);
+        node.nodeValue = t < 1 ? String(Math.round(n * e)) : final;
+        if (t < 1) requestAnimationFrame(step);
+      })(t0);
+    }, delay);
+  }
+  function reveal() {
+    var v = $("verdict");
+    if (reduced || !A.state.result) return;
+    v.classList.remove("revealing"); void v.offsetWidth; v.classList.add("revealing");
+    $("v-mark").style.transition = "none"; $("v-mark").style.left = "0%";
+    void $("v-mark").offsetWidth; $("v-mark").style.transition = "";
+    $("v-mark").style.left = ((A.state.result.score - 1) / 9) * 100 + "%";
+    tween($("v-score"), 900, 0);
+    tween($("s-n26"), 900, 350);
+    tween($("s-n28"), 700, 600);
+    tween($("s-2050"), 1000, 900);
+    clearTimeout(revealTimer);
+    revealTimer = setTimeout(function () { v.classList.remove("revealing"); }, 2600);
+  }
+
+  function wire() {
+    Array.prototype.forEach.call($("mode-toggle").querySelectorAll("button"), function (b) {
+      b.addEventListener("click", function () { A.track("mode-" + b.dataset.mode); step = 0; setMode(b.dataset.mode, false); });
+    });
+    $("wz-next").addEventListener("click", advance);
+    $("wz-back").addEventListener("click", function () {
+      clearTimeout(answer._t);
+      if (step > KEYS.length) { step = 0; render(true); return; }
+      step = Math.max(0, step - 1); render(true);
+    });
+    document.addEventListener("fournaise:update", function () { if (mode === "quick" && step === 0) render(false); });
+    document.addEventListener("fournaise:reveal", reveal);
+    // Un lien partagé ou une adresse déjà choisie arrive avec toutes ses réponses : le formulaire complet est plus parlant.
+    var fromLink = /[?&]floor=/.test(location.search);
+    setMode(fromLink ? "full" : saved() === "full" ? "full" : "quick", false);
+  }
+  wire();
 })();
 
 </script>
