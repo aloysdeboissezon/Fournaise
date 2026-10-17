@@ -22,6 +22,13 @@ Pour le mettre en ligne gratuitement :
 
 ```
 index.html                 page (contenu entre les marqueurs BODY:START / BODY:END)
+mentions-legales.html, confidentialite.html, donnees-licences.html, 404.html, robots.txt, sitemap.xml
+                           générés par scripts/build_pages.py (brouillons : les passages « À COMPLÉTER » sont à remplir)
+sw.js                      service worker : réseau d'abord, copie en cache hors ligne
+fonts/, css/fonts.css      polices auto-hébergées (sous-ensemble latin, licence SIL OFL)
+js/analytics.js            mesure d'audience sans cookie (GoatCounter), désactivée tant que le code du site est vide
+tests/                     tests du modèle (node --test), budget de poids, accessibilité (axe + Playwright)
+.github/workflows/ci.yml   lance ces tests à chaque envoi
 css/style.css              styles, thème clair et sombre
 js/model.js                modèle de calcul, tous les coefficients en clair
 js/app.js                  interface : formulaire, carte, graphiques, partage
@@ -43,10 +50,14 @@ scripts/check_meteofrance.py  compare les relevés embarqués au fichier officie
 scripts/build_dpe.py       regroupe les DPE par adresse
 scripts/build_data.py      régénère js/data-paris.js à partir de data/
 scripts/build_artifact.py  produit dist/fournaise.html
+scripts/build_pages.py     génère les pages de texte, la 404, robots.txt et sitemap.xml
 scripts/build_icons.py     dessine les icônes (favicon, écran d'accueil) dans img/
 scripts/og.html, build_og.js   aperçu de partage img/og.png (1200 × 630) : node scripts/build_og.js
 site.webmanifest           installation sur l'écran d'accueil (nom, couleurs, icônes)
 ```
+
+Tests : `npm test` (modèle et poids), `npm install && npx playwright install chromium && npm run test:a11y` (accessibilité).
+Si un coefficient change volontairement, `node tests/model.test.js --print` donne les nouvelles valeurs de référence.
 
 Ajouter l'été 2027 : déposer `2027-06.txt` … `2027-09.txt` (format `jour;tn;tx`) dans `data/montsouris-raw/`,
 puis `python3 scripts/build_data.py` et `python3 scripts/build_artifact.py`.
@@ -68,7 +79,7 @@ Pour chaque jour du 1er juin au 30 septembre des dix derniers étés :
    à l'ensoleillement estimé à partir de Tx.
 5. Ventilation nocturne : la chambre se rapproche de l'air extérieur, plus vite si le logement est traversant
    et si on peut dormir fenêtre ouverte.
-6. Nuit étouffante si la chambre dépasse 26 °C au coucher. Score = 1 + 9 × √(min(nuits pondérées, 60) / 60),
+6. Nuit étouffante si la chambre dépasse 26 °C au coucher. Score = 1 + 9 × √(min(nuits pondérées, 120) / 120),
    une nuit au-dessus de 28 °C comptant 1,5.
 
 Projection 2050 : mêmes étés décalés de +1,2 °C la nuit et +1,4 °C le jour (trajectoire de référence TRACC,

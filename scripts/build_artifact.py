@@ -10,7 +10,10 @@ read = lambda p: open(os.path.join(ROOT, p), encoding="utf-8").read()
 
 html = read("index.html")
 body = html.split("<!-- BODY:START -->")[1].split("<!-- BODY:END -->")[0].strip()
-fonts = re.search(r'<link rel="stylesheet" href="(https://fonts\.googleapis\.com[^"]+)">', html).group(1)
+# Le site utilise des polices auto-hébergées (css/fonts.css) ; la page autonome retombe sur Google Fonts.
+fonts = "https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap"
+BASE = "https://aloysdeboissezon.github.io/Fournaise/"
+body = re.sub(r'href="(mentions-legales|confidentialite|donnees-licences)\.html"', lambda m: 'href="' + BASE + m.group(1) + '.html"', body)
 css = read("css/style.css")
 scripts = "".join("<script>\n" + read(p) + "\n</script>\n" for p in ("js/data-paris.js", "js/data-heat.js", "js/model.js", "js/app.js"))
 

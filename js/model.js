@@ -254,9 +254,13 @@
   }
 
   // Score sur 10 : nuits étouffantes pondérées (une nuit ≥ 28 °C compte 1,5).
+  // 10 correspond à SCORE_FULL nuits pondérées (environ 80 nuits sur les 122 de l'été) ;
+  // au-delà le score est plafonné, mais ce plafond est loin des logements courants,
+  // pour que la projection 2050 reste lisible même pour les logements les plus chauds.
+  var SCORE_FULL = 120;
   function scoreFrom(n26, n28) {
     var weighted = n26 + 0.5 * n28;
-    var s = 1 + 9 * Math.sqrt(Math.min(weighted, 60) / 60);
+    var s = 1 + 9 * Math.sqrt(Math.min(weighted, SCORE_FULL) / SCORE_FULL);
     return Math.max(1, Math.min(10, s));
   }
 
@@ -264,7 +268,7 @@
     { max: 2.5, label: "Frais", text: "Un logement qui encaisse bien l'été parisien." },
     { max: 4.5, label: "Supportable", text: "Quelques nuits pénibles pendant les canicules." },
     { max: 6.5, label: "Chaud", text: "Plusieurs semaines de nuits difficiles chaque été." },
-    { max: 8.5, label: "Étuve", text: "L'été se vit fenêtres grandes ouvertes et ventilateur à fond." },
+    { max: 7.5, label: "Étuve", text: "L'été se vit fenêtres grandes ouvertes et ventilateur à fond." },
     { max: 11, label: "Fournaise", text: "Dormir ici en juillet relève de l'exploit." }
   ];
 
@@ -333,7 +337,7 @@
     }
     reasons.push({ ok: true, text: "10 étés de relevés réels à Paris-Montsouris" });
     reasons.push({ ok: true, text: "Bâti, végétation et eau du quartier mesurés par l'IGN (mailles de 100 m)" });
-    reasons.push({ ok: false, text: "Îlot de chaleur déduit de ces mesures, pas encore de températures de surface satellite" });
+    reasons.push({ ok: false, text: "Îlot de chaleur calé sur Landsat (surface, de jour), pas sur l'air mesuré la nuit" });
     reasons.push({ ok: false, text: "Modèle simplifié, non calibré sur des mesures dans ce logement" });
     var level = points >= 6.5 ? "bonne" : points >= 4.5 ? "moyenne" : "faible";
     return { level: level, label: level === "bonne" ? "Bonne" : level === "moyenne" ? "Moyenne" : "Faible", points: points, reasons: reasons };
@@ -357,6 +361,8 @@
     var acFactor = prm.profile.ac === "yes" ? 0.15 : 1;
     var effective = function (sim) { return { n26: sim.n26 * acFactor, n28: sim.n28 * acFactor }; };
     var e = effective(now), e50 = effective(s50);
+    var s24 = simulate(climate, heat, prm, { threshold: 24 });
+    var worst = now.years.reduce(function (w, y) { return y.n26 > w.n26 ? y : w; }, now.years[0]);
     var score = scoreFrom(e.n26, e.n28);
     var score2050 = scoreFrom(e50.n26, e50.n28);
 
@@ -370,6 +376,8 @@
       ac: prm.profile.ac === "yes",
       n26: e.n26,
       n28: e.n28,
+      n24: s24.n26 * acFactor,
+      worstYear: { year: worst.year, n26: worst.n26 * acFactor },
       score: score,
       scoreRounded: Math.round(score),
       verdict: verdict(score),
@@ -471,7 +479,7 @@
   var api = {
     MONTSOURIS: MONTSOURIS, BBOX: BBOX, SEINE: SEINE,
     FACTORS: FACTORS, DEFAULT_PROFILE: DEFAULT_PROFILE, SCENARIOS_2050: SCENARIOS_2050,
-    THRESHOLD: THRESHOLD, THRESHOLD_HARD: THRESHOLD_HARD, KM_LON: KM_LON, KM_LAT: KM_LAT,
+    THRESHOLD: THRESHOLD, THRESHOLD_HARD: THRESHOLD_HARD, SCORE_FULL: SCORE_FULL, KM_LON: KM_LON, KM_LAT: KM_LAT,
     arrondissementAt: arrondissementAt, localHeat: localHeat, setHeatGrid: setHeatGrid, inParis: inParis,
     params: params, simulate: simulate, scoreFrom: scoreFrom, verdict: verdict,
     analyze: analyze, advice: advice, confidence: confidence, hotEvening: hotEvening

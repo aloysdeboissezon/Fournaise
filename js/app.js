@@ -6,6 +6,7 @@
   var M = window.FournaiseModel;
   var ARRS = D.arrondissements;
   var $ = function (id) { return document.getElementById(id); };
+  var track = function (name) { if (window.FournaiseTrack) window.FournaiseTrack(name); };
 
   // ---------------------------------------------------------------------------
   // Questions du formulaire
@@ -49,7 +50,9 @@
     example: null,
     view: "now",
     result: null,
-    networkDown: false,
+    networkDown: 0,        // horodatage de la dernière panne réseau ; on réessaie après 20 s
+    adviceSelf: false,
+    lastAdvice: [],
     touched: {},      // réponses données par l'utilisateur : jamais écrasées par les données de l'immeuble
     prefilled: {},    // réponses préremplies depuis les DPE ou la BDNB
     building: null
@@ -95,12 +98,18 @@
   function fr(n, digits) {
     return n.toLocaleString("fr-FR", { minimumFractionDigits: digits || 0, maximumFractionDigits: digits || 0 });
   }
+  // Au-dessus de 20 nuits, on arrondit à 5 : le modèle n'est pas calé sur des mesures intérieures,
+  // une précision à la nuit près ferait croire à plus de certitude qu'il n'y en a.
+  function roundNights(n) {
+    if (n >= 20) return Math.round(n / 5) * 5;
+    return Math.round(n);
+  }
   function nights(n) {
     if (n < 0.5) return "0";
     if (n < 1) return "< 1";
-    return fr(Math.round(n));
+    return fr(roundNights(n));
   }
-  function plural(n, one, many) { return Math.round(n) >= 2 ? many : one; }
+  function plural(n, one, many) { return roundNights(n) >= 2 ? many : one; }
   var MONTHS = ["juin", "juillet", "août", "septembre"];
   var MONTH_START = [0, 30, 61, 92];
   function dayLabel(d) {
@@ -142,7 +151,7 @@
       b.type = "button";
       b.textContent = ex.label;
       b.dataset.example = ex.id;
-      b.addEventListener("click", function () { loadExample(ex.id); });
+      b.addEventListener("click", function () { track("exemple"); loadExample(ex.id); });
       box.appendChild(b);
     });
   }
@@ -423,7 +432,7 @@
     if (pre.length) parts.push("<em>Prérempli : " + pre.join(" et ") + ". Change-les si ton logement diffère.</em>");
     if (!parts.length) {
       if (!b.dpeDone || !b.bdnbDone) parts.push("Recherche des DPE de l'immeuble…");
-      else if (b.failed) parts.push("Les DPE de l'immeuble ne sont pas disponibles dans cette version de la page.");
+      else if (b.failed) parts.push("Les données de l'immeuble n'ont pas pu être chargées : le score utilise des valeurs moyennes. <button type=\"button\" class=\"linklike\" id=\"b-retry\">Réessayer</button>");
       else parts.push("Aucun DPE publié depuis 2021 à moins de 30 m.");
     }
     el.innerHTML = parts.map(function (p) { return "<span>" + p + "</span>"; }).join("");
@@ -524,14 +533,14 @@
     input.addEventListener("input", function () {
       var q = input.value.trim();
       clearTimeout(debounce);
-      if (q.length < 5 || state.networkDown) { showSuggestions([]); return; }
+      if (q.length < 5 || isDown()) { showSuggestions([]); return; }
       debounce = setTimeout(function () {
         lastQuery = q;
         busy(true);
         geocode(q + (/paris|750\d\d/i.test(q) ? "" : " Paris")).then(function (res) {
           if (lastQuery !== q) return;
           showSuggestions(parisOnly(res).slice(0, 5));
-        }).catch(function () { state.networkDown = true; showSuggestions([]); }).then(function () { if (lastQuery === q) busy(false); });
+        }).catch(function () { state.networkDown = Date.now(); showSuggestions([]); }).then(function () { if (lastQuery === q) busy(false); });
       }, 280);
     });
     input.addEventListener("keydown", function (e) {
@@ -555,7 +564,7 @@
       if (!ul.hidden && suggestions.length) { chooseSuggestion(suggestions[Math.max(0, activeIdx)]); return; }
       var q = input.value.trim();
       if (!q) { note("Tape une adresse, ou clique sur la carte.", true); return; }
-      if (state.networkDown) { offlineFallback(q); return; }
+      if (isDown()) { offlineFallback(q); return; }
       note("Recherche de l'adresse…");
       lastQuery = q;
       busy(true);
@@ -565,9 +574,11 @@
         if (paris.length) chooseSuggestion(paris[0]);
         else if (res.length) note("Cette adresse est hors de Paris. Fournaise ne couvre que Paris pour l'instant ; Lyon, Marseille et Toulouse sont les prochaines villes.", true);
         else note("Adresse introuvable. Vérifie l'orthographe ou clique sur la carte.", true);
-      }).catch(function () { busy(false); state.networkDown = true; offlineFallback(q); });
+      }).catch(function () { busy(false); state.networkDown = Date.now(); offlineFallback(q); });
     });
   }
+
+  function isDown() { return !!state.networkDown && Date.now() - state.networkDown < 20000; }
 
   function busy(on) {
     $("addr-go").classList.toggle("loading", on);
@@ -605,14 +616,17 @@
     $("s-n26").innerHTML = nights(r.n26) + '<span class="u">' + plural(r.n26, "nuit", "nuits") + "</span>";
     $("s-range").textContent = r.ac
       ? "clim allumée les autres nuits (" + nights(r.passive) + " sans clim)"
-      : "fourchette probable : " + nights(r.range[0]) + " à " + nights(r.range[1]);
+      : "plage de sensibilité : " + nights(r.range[0]) + " à " + nights(r.range[1]);
     $("s-n28").innerHTML = nights(r.n28) + '<span class="u">' + plural(r.n28, "nuit", "nuits") + "</span>";
     $("s-2050").innerHTML = nights(r.y2050.n26) + '<span class="u">' + plural(r.y2050.n26, "nuit", "nuits") + "</span>";
-    var diff = Math.round(r.y2050.n26) - Math.round(r.n26);
+    var diff = roundNights(r.y2050.n26) - roundNights(r.n26);
     $("s-2050s").textContent = "score " + r.y2050.scoreRounded + "/10" + (diff > 0 ? " · " + diff + " de plus" : "");
     $("s-trop").innerHTML = nights(r.now.tropical) + '<span class="u">par été</span>';
 
     var arr = r.heat.arr ? "Paris " + arrName(r.heat.arr.n) : "Paris";
+    $("v-extra").textContent = "Moyenne 2017-2026 · pire été : " + r.worstYear.year + " avec " + nights(r.worstYear.n26) + " " + plural(r.worstYear.n26, "nuit", "nuits") +
+      " · au seuil de 24 °C recommandé par l'OMS : " + nights(r.n24) + " " + plural(r.n24, "nuit", "nuits") + ".";
+    $("v-live").textContent = "Score " + r.scoreRounded + " sur 10, " + r.verdict.label.toLowerCase() + ". " + nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") + " par été, " + nights(r.y2050.n26) + " en 2050. Confiance " + r.confidence.label.toLowerCase() + ".";
     var around = r.heat.built == null ? "" : " (autour : " + Math.round(r.heat.built) + " % bâti, " + Math.round(r.heat.veg) + " % de végétation)";
     $("v-place").textContent = (state.location.label || arr) + " · " + heatSentence(r.heat.delta) + around + ".";
     renderBuilding();
@@ -672,6 +686,10 @@
       ctx.font = (y.n26 >= 20 ? "600 " : "500 ") + "12px " + cssVar("--font-data");
       ctx.fillText(String(y.n26), W, yy + rowH / 2);
     });
+    $("years-caption").textContent = state.view === "now" ? "Nuits étouffantes par été, climat observé 2017-2026" : "Nuits étouffantes par été, mêmes étés en version 2050";
+    $("years-table").querySelector("tbody").innerHTML = sim.years.map(function (y) {
+      return "<tr><th scope=\"row\">" + y.year + '</th><td class="num">' + y.n26 + '</td><td class="num">' + y.n28 + '</td><td class="num">' + y.tropical + "</td></tr>";
+    }).join("");
     stripesGeom = { W: W, labelW: labelW, countW: countW, top: top, rowH: rowH, gap: gap, cellW: cellW, sim: sim };
     renderStripesLegend();
   }
@@ -760,10 +778,10 @@
 
   // 2050 ---------------------------------------------------------------------
   function renderFuture(r) {
-    $("f-now").innerHTML = nights(r.n26) + ' <small style="font-size:.4em;font-weight:600">' + plural(r.n26, "nuit", "nuits") + "</small>";
+    $("f-now").innerHTML = nights(r.n26) + ' <small style="font-size:.4em;font-weight:600;color:var(--muted)">' + plural(r.n26, "nuit", "nuits") + "</small>";
     $("f-now").style.color = scoreColor(Math.min(r.score, 9.2));
     $("f-now-s").textContent = "score " + r.scoreRounded + "/10 · " + r.verdict.label.toLowerCase();
-    $("f-2050").innerHTML = nights(r.y2050.n26) + ' <small style="font-size:.4em;font-weight:600">' + plural(r.y2050.n26, "nuit", "nuits") + "</small>";
+    $("f-2050").innerHTML = nights(r.y2050.n26) + ' <small style="font-size:.4em;font-weight:600;color:var(--muted)">' + plural(r.y2050.n26, "nuit", "nuits") + "</small>";
     $("f-2050").style.color = scoreColor(Math.min(r.y2050.score, 9.2));
     $("f-2050-s").textContent = "score " + r.y2050.scoreRounded + "/10 · entre " + nights(r.y2050.range[0]) + " et " + nights(r.y2050.range[1]) + " nuits";
     var lines = [
@@ -780,6 +798,8 @@
 
   // Conseils -----------------------------------------------------------------
   function renderAdvice(list) {
+    if (list) state.lastAdvice = list; else list = state.lastAdvice;
+    if (state.adviceSelf) list = list.filter(function (a) { return a.who === "Toi"; });
     $("advice").innerHTML = list.slice(0, 6).map(function (a) {
       var gain = a.saved >= 0.5
         ? "−" + Math.round(a.saved) + " " + plural(a.saved, "nuit", "nuits") + (a.felt ? " <small>ressenties</small>" : " <small>par été</small>")
@@ -812,8 +832,9 @@
     return "Je dormirai au frais.";
   }
   function shareText(r) {
+    var url = shareUrl();
     return "Mon appart a eu " + r.scoreRounded + "/10 sur Fournaise : " + nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") +
-      " par été, " + nights(r.y2050.n26) + " en 2050. " + shareLine(r);
+      " par été, " + nights(r.y2050.n26) + " en 2050. " + shareLine(r) + (url ? " " + url : "");
   }
   function renderShare(r) {
     var story = $("story");
@@ -885,7 +906,28 @@
 
   var downloads = null;
   function wireShare() {
+    $("link-btn").addEventListener("click", function () {
+      var url = shareUrl();
+      if (!url) { toast("Le lien n'existe que sur le site en ligne."); return; }
+      track("partage-lien");
+      var done = function () { toast("Lien copié."); };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, function () { window.prompt("Copie le lien :", url); });
+        else window.prompt("Copie le lien :", url);
+      } catch (e) { window.prompt("Copie le lien :", url); }
+    });
+    if (navigator.share) {
+      $("native-btn").hidden = false;
+      $("native-btn").addEventListener("click", function () {
+        track("partage-natif");
+        var data = { title: "Fournaise", text: $("share-text").textContent };
+        var url = shareUrl();
+        if (url) data.url = url;
+        navigator.share(data).catch(function () {});
+      });
+    }
     $("copy-btn").addEventListener("click", function () {
+      track("partage-texte");
       var text = $("share-text").textContent;
       var done = function () { toast("Message copié."); };
       var fallback = function () { selectText($("share-text")); toast("Texte sélectionné : copie-le avec Ctrl+C ou un appui long."); };
@@ -909,7 +951,12 @@
         var canvas = drawShareImage(state.result);
         canvas.toBlob(function (blob) {
           if (!blob) { toast("L'image n'a pas pu être créée."); return; }
-          if (downloads) {
+          track("partage-image");
+          var file = null;
+          try { file = new File([blob], "fournaise-score.png", { type: "image/png" }); } catch (e) {}
+          if (!downloads && file && navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({ files: [file], title: "Fournaise", text: $("share-text").textContent }).catch(function () {});
+          } else if (downloads) {
             downloads.save({ filename: "fournaise-score.png", data: blob }).then(function () { toast("Image enregistrée."); }, function (err) {
               if (err && err.code === "declined") return;
               toast("L'enregistrement n'est pas disponible ici.");
@@ -924,6 +971,160 @@
             toast("Image enregistrée.");
           }
         }, "image/png");
+      });
+    });
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // État du calcul dans l'adresse de la page (lien partageable)
+  // ---------------------------------------------------------------------------
+  var PROFILE_KEYS = Q_MAIN.concat(Q_MORE).map(function (q) { return q.key; });
+  var QUERY_LIMITS = {};
+  Q_MAIN.concat(Q_MORE).forEach(function (q) { QUERY_LIMITS[q.key] = q.opts.map(function (o) { return o[0]; }); });
+
+  function stateQuery() {
+    if (!state.location) return "";
+    var parts = ["lon=" + state.location.lon.toFixed(3), "lat=" + state.location.lat.toFixed(3)];
+    PROFILE_KEYS.forEach(function (k) { parts.push(k + "=" + encodeURIComponent(state.profile[k])); });
+    return "?" + parts.join("&");
+  }
+
+  function pageBase() { return location.href.split(/[?#]/)[0]; }
+  function shareUrl() { return /^https?:/.test(location.protocol) ? pageBase() + stateQuery() : ""; }
+
+  function syncUrl() {
+    if (!window.history || !history.replaceState || !/^https?:/.test(location.protocol)) return;
+    try { history.replaceState(null, "", state.example ? location.pathname + location.hash : location.pathname + stateQuery() + location.hash); } catch (e) {}
+  }
+
+  // Relit un lien partagé. Renvoie true si l'adresse de la page décrivait un logement valide.
+  function loadFromQuery() {
+    var q = location.search;
+    if (!q || q.length < 5) return false;
+    var vals = {};
+    q.slice(1).split("&").forEach(function (kv) {
+      var i = kv.indexOf("=");
+      if (i > 0) { try { vals[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1)); } catch (e) {} }
+    });
+    var lon = parseFloat(vals.lon), lat = parseFloat(vals.lat);
+    if (!isFinite(lon) || !isFinite(lat) || !M.inParis(lon, lat, ARRS)) return false;
+    var profile = Object.assign({}, M.DEFAULT_PROFILE);
+    PROFILE_KEYS.forEach(function (k) {
+      if (vals[k] && QUERY_LIMITS[k].indexOf(vals[k]) >= 0) { profile[k] = vals[k]; state.touched[k] = true; }
+    });
+    var arr = M.arrondissementAt(lon, lat, ARRS);
+    state.example = null;
+    state.profile = profile;
+    state.location = { lon: lon, lat: lat, precision: "map", label: "Position partagée, Paris " + arrName(arr.n), approx: true };
+    state.prefilled = {}; state.building = null;
+    $("addr-input").value = "";
+    syncForm();
+    note("Lien partagé : position arrondie à environ 100 m. Tu peux la préciser en tapant une adresse.");
+    update();
+    return true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Comparer des logements (gardés dans ce navigateur)
+  // ---------------------------------------------------------------------------
+  var CMP_KEY = "fournaise-compare", CMP_MAX = 3;
+  var compareList = [];
+  function readCompare() {
+    try {
+      var a = JSON.parse(localStorage.getItem(CMP_KEY) || "[]");
+      if (Array.isArray(a)) compareList = a.filter(function (x) { return x && typeof x.label === "string" && typeof x.q === "string"; }).slice(0, CMP_MAX);
+    } catch (e) { compareList = []; }
+  }
+  function writeCompare() { try { localStorage.setItem(CMP_KEY, JSON.stringify(compareList)); } catch (e) {} }
+
+  function addCompare() {
+    var r = state.result, note = $("cmp-note");
+    if (!r || !state.location) return;
+    var q = stateQuery();
+    if (compareList.some(function (x) { return x.q === q; })) { note.textContent = "Ce logement est déjà dans la comparaison."; return; }
+    if (compareList.length >= CMP_MAX) { note.textContent = "Tu peux garder " + CMP_MAX + " logements : retire-en un pour en ajouter."; return; }
+    var F = M.FACTORS, p = state.profile;
+    compareList.push({
+      label: state.location.label, q: q, score: r.scoreRounded, s: r.score, verdict: r.verdict.label,
+      n26: roundNights(r.n26), n28: roundNights(r.n28), n2050: roundNights(r.y2050.n26), s2050: r.y2050.scoreRounded,
+      delta: Math.round(r.heat.delta * 10) / 10, conf: r.confidence.label,
+      traits: [F.floor[p.floor].label, F.orient[p.orient].label, F.shutters[p.shutters].label]
+    });
+    writeCompare();
+    renderCompare();
+    track("comparer");
+    note.textContent = "Ajouté : " + compareList.length + " logement" + (compareList.length > 1 ? "s" : "") + " gardé" + (compareList.length > 1 ? "s" : "") + ". La comparaison est plus bas.";
+  }
+
+  function renderCompare() {
+    var sec = $("comparer");
+    sec.hidden = !compareList.length;
+    if (!compareList.length) return;
+    var best = compareList.length > 1 ? compareList.reduce(function (b, x, i) { return x.s < compareList[b].s ? i : b; }, 0) : -1;
+    var head = '<thead><tr><th scope="col"><span class="sr-only">Critère</span></th>' + compareList.map(function (x, i) {
+      return '<th scope="col" class="cmp-col' + (i === best ? " best" : "") + '"><span class="cmp-name">' + escapeHtml(x.label) + "</span>" +
+        (i === best ? '<span class="badge b-mes">Le plus frais</span>' : "") +
+        '<span class="cmp-acts"><a href="' + escapeHtml(x.q) + '">Rouvrir</a> · <button type="button" class="linklike" data-remove="' + i + '">Retirer</button></span></th>';
+    }).join("") + "</tr></thead>";
+    var rows = [
+      ["Score", function (x) { return x.score + "/10 · " + x.verdict; }],
+      ["Nuits étouffantes par été", function (x) { return x.n26 + " (dont " + x.n28 + " au-dessus de 28 °C)"; }],
+      ["En 2050", function (x) { return x.n2050 + " nuits · " + x.s2050 + "/10"; }],
+      ["Quartier, la nuit", function (x) { return (x.delta >= 0 ? "+" : "−") + fr(Math.abs(x.delta), 1) + " °C vs Montsouris"; }],
+      ["Logement", function (x) { return x.traits.map(escapeHtml).join("<br>"); }],
+      ["Confiance", function (x) { return x.conf; }]
+    ];
+    $("cmp-table").innerHTML = '<caption class="sr-only">Comparaison des logements gardés</caption>' + head + "<tbody>" + rows.map(function (r) {
+      return '<tr><th scope="row">' + r[0] + "</th>" + compareList.map(function (x) { return "<td>" + (r[0] === "Logement" ? r[1](x) : escapeHtml(r[1](x))) + "</td>"; }).join("") + "</tr>";
+    }).join("") + "</tbody>";
+  }
+
+  function wireCompare() {
+    readCompare();
+    renderCompare();
+    $("cmp-btn").addEventListener("click", addCompare);
+    $("cmp-table").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-remove]");
+      if (!b) return;
+      compareList.splice(parseInt(b.getAttribute("data-remove"), 10), 1);
+      writeCompare();
+      renderCompare();
+      $("cmp-note").textContent = "Logement retiré de la comparaison.";
+    });
+  }
+
+  // Carte au clavier : les flèches déplacent le point, validé après une courte pause.
+  function wireMapKeys() {
+    var svg = $("map"), timer = null, cur = null;
+    svg.addEventListener("keydown", function (e) {
+      var dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+      if (!dir) return;
+      e.preventDefault();
+      if (!cur) cur = state.location ? { lon: state.location.lon, lat: state.location.lat } : { lon: 2.3522, lat: 48.8566 };
+      var step = e.shiftKey ? 0.6 : 0.15;
+      var lon = cur.lon + (dir[0] * step) / M.KM_LON, lat = cur.lat + (dir[1] * step) / M.KM_LAT;
+      var arr = M.inParis(lon, lat, ARRS) ? M.arrondissementAt(lon, lat, ARRS) : null;
+      if (!arr) { note("Ce point est hors de Paris.", true); return; }
+      cur = { lon: lon, lat: lat };
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        markEdited();
+        setLocation({ lon: cur.lon, lat: cur.lat, precision: "map", label: "Point placé sur la carte, Paris " + arrName(arr.n) });
+        note("Position déplacée dans le " + arrName(arr.n) + " arrondissement.");
+        cur = null;
+      }, 350);
+    });
+    svg.addEventListener("blur", function () { cur = null; });
+  }
+
+  function wireAdviceFilter() {
+    ["all", "self"].forEach(function (v) {
+      $("adv-" + v).addEventListener("click", function () {
+        state.adviceSelf = v === "self";
+        $("adv-all").setAttribute("aria-pressed", v === "all" ? "true" : "false");
+        $("adv-self").setAttribute("aria-pressed", v === "self" ? "true" : "false");
+        renderAdvice();
       });
     });
   }
@@ -972,6 +1173,7 @@
     renderVisit();
     renderShare(r);
     placePin();
+    syncUrl();
     $("loc-text").innerHTML = "<strong>" + escapeHtml(state.location.label) + "</strong>";
     Array.prototype.forEach.call(document.querySelectorAll("[data-example]"), function (b) {
       b.setAttribute("aria-pressed", b.dataset.example === state.example ? "true" : "false");
@@ -1096,11 +1298,16 @@
     wireTheme();
     wireMapTip();
     renderHero();
-    loadExample("bonne");
+    if (!loadFromQuery()) loadExample("bonne");
+    wireCompare();
+    wireMapKeys();
+    wireAdviceFilter();
+    $("v-building").addEventListener("click", function (e) { if (e.target.id === "b-retry" && state.location) { state.building = null; lookupBuilding(state.location); } });
     wireDock();
     wireScrollSpy();
     syncThemeColor();
     document.documentElement.classList.add("ready");
+    if ("serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(function () {});
 
     var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
     if (mq && mq.addEventListener) mq.addEventListener("change", onThemeChange);

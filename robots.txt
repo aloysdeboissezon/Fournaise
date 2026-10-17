@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://aloysdeboissezon.github.io/Fournaise/sitemap.xml
