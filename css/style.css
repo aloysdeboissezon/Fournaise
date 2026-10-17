@@ -373,3 +373,7 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
 .b-pub { color: var(--focus); }
 .b-est { color: var(--warn); }
 .b-cho { color: var(--muted); }
+
+.v-building { font-size: 0.85rem; color: var(--muted); display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.v-building strong { color: var(--ink); font-weight: 600; }
+.v-building em { font-style: normal; color: var(--ink); }

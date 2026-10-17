@@ -6,7 +6,7 @@
  *
  * Chaîne de calcul, pour chaque jour du 1er juin au 30 septembre des 10 derniers étés :
  *   1. Relevés réels Tn / Tx de la station Paris-Montsouris.
- *   2. Correction de quartier (îlot de chaleur) : Tn + U·f(nuit), Tx + 0,25·U.
+ *   2. Correction de quartier (îlot de chaleur, grille IGN de 100 m) : Tn + U·f(nuit), Tx + 0,25·U.
  *   3. Moyenne glissante sur 4 jours (inertie du bâtiment) : Trm.
  *   4. Température « libre » du logement le soir :
  *        Tlibre = Trm + apports internes + s · ensoleillement(Tx)
@@ -20,57 +20,17 @@
   // Géographie de Paris
   // ---------------------------------------------------------------------------
   var MONTSOURIS = [2.3378, 48.8222];
-  var CORE = [2.347, 48.8605]; // Châtelet, cœur minéral de l'îlot de chaleur
   var BBOX = { minLon: 2.224, maxLon: 2.47, minLat: 48.815, maxLat: 48.903 };
   var KM_LON = 111.32 * Math.cos((48.86 * Math.PI) / 180); // km par degré de longitude
   var KM_LAT = 110.57;
 
-  // Espaces verts majeurs : [nom, lon, lat, demi-axe E-O (km), demi-axe N-S (km), type]
-  // type "bois" : rafraîchissement fort et étendu ; "parc" : effet local.
-  var GREEN = [
-    ["Bois de Boulogne", 2.2525, 48.862, 1.25, 2.2, "bois"],
-    ["Bois de Vincennes", 2.438, 48.834, 2.1, 1.0, "bois"],
-    ["Jardin du Luxembourg", 2.3372, 48.8462, 0.33, 0.3, "parc"],
-    ["Jardin des Plantes", 2.36, 48.844, 0.28, 0.25, "parc"],
-    ["Buttes-Chaumont", 2.3825, 48.88, 0.32, 0.24, "parc"],
-    ["Parc Montsouris", 2.338, 48.822, 0.25, 0.22, "parc"],
-    ["Cité universitaire", 2.337, 48.8195, 0.35, 0.12, "parc"],
-    ["Parc Monceau", 2.309, 48.8795, 0.2, 0.17, "parc"],
-    ["Jardin des Tuileries", 2.327, 48.8635, 0.45, 0.13, "parc"],
-    ["Jardins des Champs-Élysées", 2.315, 48.867, 0.4, 0.1, "parc"],
-    ["Champ-de-Mars", 2.298, 48.856, 0.22, 0.45, "parc"],
-    ["Esplanade des Invalides", 2.3135, 48.859, 0.15, 0.35, "parc"],
-    ["Jardins du Trocadéro", 2.2895, 48.8615, 0.18, 0.15, "parc"],
-    ["Père-Lachaise", 2.3935, 48.861, 0.45, 0.33, "parc"],
-    ["Parc de la Villette", 2.3905, 48.8935, 0.35, 0.4, "parc"],
-    ["Parc André-Citroën", 2.275, 48.841, 0.25, 0.2, "parc"],
-    ["Parc de Bercy", 2.383, 48.835, 0.35, 0.12, "parc"],
-    ["Cimetière du Montparnasse", 2.3265, 48.838, 0.3, 0.22, "parc"],
-    ["Cimetière de Montmartre", 2.3305, 48.8875, 0.25, 0.15, "parc"],
-    ["Parc Georges-Brassens", 2.3005, 48.8325, 0.18, 0.15, "parc"],
-    ["Parc Martin-Luther-King", 2.316, 48.888, 0.25, 0.12, "parc"],
-    ["Parc de Belleville", 2.385, 48.8715, 0.15, 0.12, "parc"],
-    ["Parc Kellermann", 2.355, 48.819, 0.15, 0.12, "parc"]
-  ];
-  var GREEN_EFFECT = { bois: { a: 2.2, l: 0.45 }, parc: { a: 1.0, l: 0.2 } };
-
-  // Tracé simplifié de la Seine, d'amont en aval.
+  // Tracé simplifié de la Seine, d'amont en aval (dessin de la carte uniquement).
   var SEINE = [
     [2.414, 48.8235], [2.392, 48.83], [2.378, 48.8395], [2.366, 48.8465], [2.359, 48.8505],
     [2.352, 48.8535], [2.344, 48.8565], [2.338, 48.8585], [2.329, 48.861], [2.32, 48.864],
     [2.31, 48.8645], [2.302, 48.8635], [2.2945, 48.86], [2.287, 48.8545], [2.28, 48.8485],
     [2.273, 48.841], [2.263, 48.834]
   ];
-
-  // Densité bâtie et minéralité par arrondissement (°C ajoutés la nuit).
-  var DENSITY = {
-    1: 0.1, 2: 0.35, 3: 0.35, 4: 0.2, 5: 0.1, 6: 0.1, 7: 0, 8: 0.1, 9: 0.3, 10: 0.35,
-    11: 0.4, 12: 0, 13: 0.1, 14: 0, 15: 0.1, 16: -0.2, 17: 0.15, 18: 0.3, 19: 0.15, 20: 0.25
-  };
-
-  function toKm(lon, lat) {
-    return [(lon - CORE[0]) * KM_LON, (lat - CORE[1]) * KM_LAT];
-  }
 
   function pointInRing(lon, lat, ring) {
     var inside = false;
@@ -91,69 +51,39 @@
     return null;
   }
 
-  function distToSegmentKm(p, a, b) {
-    var dx = b[0] - a[0], dy = b[1] - a[1];
-    var t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy || 1);
-    t = Math.max(0, Math.min(1, t));
-    var x = a[0] + t * dx - p[0], y = a[1] + t * dy - p[1];
-    return Math.sqrt(x * x + y * y);
+  /*
+   * Îlot de chaleur nocturne : grille de 100 m précalculée par scripts/build_heat.py
+   * (js/data-heat.js) à partir des bâtiments, de la végétation et de l'eau de la BD TOPO (IGN).
+   * delta = écart de température nocturne par rapport à la station Montsouris, par nuit chaude.
+   */
+  var GRID = null;
+  function grid() {
+    if (GRID === null) GRID = (root.FOURNAISE_DATA && root.FOURNAISE_DATA.heat) || false;
+    return GRID;
+  }
+  function setHeatGrid(g) { GRID = g; }
+
+  // Valeur interpolée (bilinéaire) d'un champ de la grille au point donné.
+  function sample(g, field, lon, lat, scale) {
+    var x = ((lon - g.lon0) * g.kmLon * 1000) / g.cellM - 0.5;
+    var y = ((g.lat1 - lat) * g.kmLat * 1000) / g.cellM - 0.5;
+    var c0 = Math.max(0, Math.min(g.cols - 2, Math.floor(x))), r0 = Math.max(0, Math.min(g.rows - 2, Math.floor(y)));
+    var tx = Math.max(0, Math.min(1, x - c0)), ty = Math.max(0, Math.min(1, y - r0));
+    var a = g[field], i = r0 * g.cols + c0;
+    var top = a[i] * (1 - tx) + a[i + 1] * tx, bot = a[i + g.cols] * (1 - tx) + a[i + g.cols + 1] * tx;
+    return (top * (1 - ty) + bot * ty) * scale;
   }
 
-  var SEINE_KM = SEINE.map(function (c) { return toKm(c[0], c[1]); });
-
-  function seineDistanceKm(lon, lat) {
-    var p = toKm(lon, lat), best = Infinity;
-    for (var i = 1; i < SEINE_KM.length; i++) best = Math.min(best, distToSegmentKm(p, SEINE_KM[i - 1], SEINE_KM[i]));
-    return best;
-  }
-
-  // Effet de chaque espace vert : renvoie {cooling (°C, négatif), nearest:{name, km}}
-  function greenEffect(lon, lat) {
-    var cooling = 0, nearest = null;
-    for (var i = 0; i < GREEN.length; i++) {
-      var g = GREEN[i];
-      var dx = (lon - g[1]) * KM_LON, dy = (lat - g[2]) * KM_LAT;
-      var r = Math.sqrt((dx / g[3]) * (dx / g[3]) + (dy / g[4]) * (dy / g[4]));
-      var outside = r <= 1 ? 0 : (r - 1) * Math.sqrt(g[3] * g[4]);
-      var e = GREEN_EFFECT[g[5]];
-      cooling -= e.a * Math.exp(-outside / e.l);
-      if (!nearest || outside < nearest.km) nearest = { name: g[0], km: outside, type: g[5] };
-    }
-    return { cooling: Math.max(cooling, -2.6), nearest: nearest };
-  }
-
-  // Îlot de chaleur nocturne brut (°C, échelle relative).
-  function uhiRawParts(lon, lat, arrs) {
-    var c = toKm(lon, lat);
-    var d = Math.sqrt(c[0] * c[0] + c[1] * c[1]);
-    var arr = arrondissementAt(lon, lat, arrs);
-    var g = greenEffect(lon, lat);
-    var seineKm = seineDistanceKm(lon, lat);
-    return {
-      base: 0.5,
-      core: 0.8 * Math.exp(-Math.pow(d / 3.0, 2)),
-      density: arr ? DENSITY[arr.n] || 0 : 0,
-      green: g.cooling,
-      seine: -0.35 * Math.exp(-seineKm / 0.15),
-      arr: arr,
-      nearestGreen: g.nearest,
-      seineKm: seineKm,
-      coreKm: d
-    };
-  }
-
-  function sumParts(p) {
-    return p.base + p.core + p.density + p.green + p.seine;
-  }
-
-  var UHI_SCALE = 0.8; // calage : centre de Paris ≈ +1,5 °C la nuit par rapport à Montsouris
-  var STATION_UHI = null;
-  // Écart nocturne du point (°C) par rapport à la station Montsouris, par nuit chaude.
+  // Écart nocturne du point (°C) par rapport à la station Montsouris, et ce qui l'explique.
   function localHeat(lon, lat, arrs) {
-    if (STATION_UHI === null) STATION_UHI = sumParts(uhiRawParts(MONTSOURIS[0], MONTSOURIS[1], arrs));
-    var p = uhiRawParts(lon, lat, arrs);
-    p.delta = UHI_SCALE * (sumParts(p) - STATION_UHI);
-    return p;
+    var g = grid();
+    var out = { arr: arrondissementAt(lon, lat, arrs), delta: 0, built: null, veg: null, height: null };
+    if (!g) return out;
+    out.delta = sample(g, "delta", lon, lat, 0.1);
+    out.built = sample(g, "built", lon, lat, 1);
+    out.veg = sample(g, "veg", lon, lat, 1);
+    out.height = sample(g, "height", lon, lat, 1);
+    return out;
   }
 
   function inParis(lon, lat, arrs) {
@@ -397,9 +327,13 @@
     var known = 6 - prm.unknowns;
     points += known * 0.5;
     reasons.push({ ok: prm.unknowns <= 1, text: known + (known > 1 ? " caractéristiques" : " caractéristique") + " du logement sur 6 " + (known > 1 ? "renseignées" : "renseignée") });
-    if (prm.profile.dpeEte !== "unknown") { points += 1; reasons.push({ ok: true, text: "Confort d'été du DPE pris en compte" }); }
+    if (prm.profile.dpeEte !== "unknown") {
+      points += opts.dpeFrom === "building" ? 0.5 : 1;
+      reasons.push({ ok: true, text: opts.dpeFrom === "building" ? "Confort d'été repris des DPE de l'immeuble (ADEME), pas forcément ton logement" : "Confort d'été du DPE pris en compte" });
+    }
     reasons.push({ ok: true, text: "10 étés de relevés réels à Paris-Montsouris" });
-    reasons.push({ ok: false, text: "Carte des îlots de chaleur estimée à l'échelle du quartier, pas de l'immeuble" });
+    reasons.push({ ok: true, text: "Bâti, végétation et eau du quartier mesurés par l'IGN (mailles de 100 m)" });
+    reasons.push({ ok: false, text: "Îlot de chaleur déduit de ces mesures, pas encore de températures de surface satellite" });
     reasons.push({ ok: false, text: "Modèle simplifié, non calibré sur des mesures dans ce logement" });
     var level = points >= 6.5 ? "bonne" : points >= 4.5 ? "moyenne" : "faible";
     return { level: level, label: level === "bonne" ? "Bonne" : level === "moyenne" ? "Moyenne" : "Faible", points: points, reasons: reasons };
@@ -535,10 +469,10 @@
   }
 
   var api = {
-    MONTSOURIS: MONTSOURIS, BBOX: BBOX, GREEN: GREEN, SEINE: SEINE, DENSITY: DENSITY,
+    MONTSOURIS: MONTSOURIS, BBOX: BBOX, SEINE: SEINE,
     FACTORS: FACTORS, DEFAULT_PROFILE: DEFAULT_PROFILE, SCENARIOS_2050: SCENARIOS_2050,
     THRESHOLD: THRESHOLD, THRESHOLD_HARD: THRESHOLD_HARD, KM_LON: KM_LON, KM_LAT: KM_LAT,
-    arrondissementAt: arrondissementAt, localHeat: localHeat, inParis: inParis,
+    arrondissementAt: arrondissementAt, localHeat: localHeat, setHeatGrid: setHeatGrid, inParis: inParis,
     params: params, simulate: simulate, scoreFrom: scoreFrom, verdict: verdict,
     analyze: analyze, advice: advice, confidence: confidence, hotEvening: hotEvening
   };

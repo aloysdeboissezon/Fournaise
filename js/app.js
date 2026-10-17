@@ -49,7 +49,10 @@
     example: null,
     view: "now",
     result: null,
-    networkDown: false
+    networkDown: false,
+    touched: {},      // réponses données par l'utilisateur : jamais écrasées par les données de l'immeuble
+    prefilled: {},    // réponses préremplies depuis les DPE ou la BDNB
+    building: null
   };
 
   // ---------------------------------------------------------------------------
@@ -149,6 +152,7 @@
     state.example = ex.id;
     state.profile = Object.assign({}, M.DEFAULT_PROFILE, ex.profile);
     state.location = Object.assign({}, ex.location);
+    state.touched = {}; state.prefilled = {}; state.building = null;
     $("addr-input").value = "";
     syncForm();
     update();
@@ -275,7 +279,142 @@
 
   function setLocation(loc) {
     state.location = loc;
+    state.building = null;
+    clearPrefill();
     update();
+    if (loc.precision !== "arr" && !loc.approx) lookupBuilding(loc);
+  }
+
+  // ---------------------------------------------------------------------------
+  // L'immeuble : DPE de l'ADEME regroupés par adresse (data/dpe/, précalculés) et BDNB (en direct)
+  // ---------------------------------------------------------------------------
+  var dpeCache = {};
+  var ERA_OF = function (y) {
+    return y < 1915 ? "pre1914" : y < 1949 ? "1914_1948" : y < 1975 ? "1949_1974" : y < 2006 ? "1975_2005" : "post2005";
+  };
+
+  function loadDpe(code) {
+    if (!dpeCache[code]) {
+      dpeCache[code] = fetchJson("data/dpe/" + code + ".json", 8000).catch(function (e) { delete dpeCache[code]; throw e; });
+    }
+    return dpeCache[code];
+  }
+
+  // Adresse exacte (identifiant BAN) sinon adresse avec DPE la plus proche, à 30 m au plus.
+  function findDpe(file, loc) {
+    var rows = file.rows, best = null, bestD = 0.03;
+    if (loc.banId && loc.banId.slice(0, 5) === file.commune) {
+      var key = loc.banId.slice(6);
+      for (var i = 0; i < rows.length; i++) if (rows[i][0] === key) return { row: rows[i], exact: true, km: 0 };
+    }
+    for (var j = 0; j < rows.length; j++) {
+      var dx = (rows[j][1] - loc.lon) * M.KM_LON, dy = (rows[j][2] - loc.lat) * M.KM_LAT;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < bestD) { bestD = d; best = rows[j]; }
+    }
+    return best ? { row: best, exact: false, km: bestD } : null;
+  }
+
+  function dpeSummary(row) {
+    var ete = row[4], prot = row[5], trav = row[6];
+    return {
+      n: row[3], ete: ete, eteN: ete[0] + ete[1] + ete[2],
+      eteMain: ete[2] >= ete[1] && ete[2] >= ete[0] ? "insuffisant" : ete[1] >= ete[0] ? "moyen" : "bon",
+      prot: prot, trav: trav, year: row[7], etq: row[8], floor: row[9]
+    };
+  }
+
+  // BDNB (CSTB) : deux appels, adresse BAN → groupe de bâtiments → caractéristiques. Quota limité par visiteur.
+  var BDNB = "https://api.bdnb.io/v1/bdnb/donnees/";
+  function loadBdnb(banId) {
+    return fetchJson(BDNB + "rel_batiment_groupe_adresse?select=batiment_groupe_id&cle_interop_adr=eq." + encodeURIComponent(banId), 6000).then(function (rel) {
+      if (!rel.length) return null;
+      return fetchJson(BDNB + "batiment_groupe_complet?select=annee_construction,mat_mur_txt,mat_toit_txt,hauteur_mean,nb_niveau&batiment_groupe_id=eq." + encodeURIComponent(rel[0].batiment_groupe_id), 6000)
+        .then(function (b) { return b[0] || null; });
+    });
+  }
+
+  function lookupBuilding(loc) {
+    var arr = M.arrondissementAt(loc.lon, loc.lat, ARRS);
+    if (!arr) return;
+    var code = String(75100 + arr.n);
+    var info = { dpe: null, bdnb: null, dpeDone: false, bdnbDone: !loc.banId, failed: false };
+    state.building = info;
+    var done = function () { if (state.location === loc) { applyBuilding(); update(); } };
+    loadDpe(code).then(function (file) {
+      var hit = findDpe(file, loc);
+      if (hit) info.dpe = Object.assign(dpeSummary(hit.row), { exact: hit.exact, m: Math.round(hit.km * 1000) });
+    }, function () { info.failed = true; }).then(function () { info.dpeDone = true; done(); });
+    if (loc.banId) {
+      loadBdnb(loc.banId).then(function (b) { info.bdnb = b; }, function () {}).then(function () { info.bdnbDone = true; done(); });
+    }
+  }
+
+  function clearPrefill() {
+    Object.keys(state.prefilled).forEach(function (k) {
+      if (!state.touched[k]) state.profile[k] = M.DEFAULT_PROFILE[k];
+    });
+    state.prefilled = {};
+    if (state.location) state.location.dpeFrom = "";
+    syncForm();
+  }
+
+  function prefill(key, value) {
+    if (state.touched[key] || state.example || !value) return;
+    state.profile[key] = value;
+    state.prefilled[key] = true;
+  }
+
+  function applyBuilding() {
+    var b = state.building;
+    if (!b) return;
+    var d = b.dpe;
+    if (d && d.eteN) {
+      prefill("dpeEte", d.eteMain);
+      if (state.prefilled.dpeEte) state.location.dpeFrom = "building";
+    }
+    var year = (d && d.year) || (b.bdnb && b.bdnb.annee_construction) || 0;
+    if (year) prefill("era", ERA_OF(year));
+    syncForm();
+  }
+
+  function renderBuilding() {
+    var el = $("v-building"), b = state.building;
+    if (!el) return;
+    if (!b || state.example) { el.hidden = true; return; }
+    var parts = [];
+    var d = b.dpe;
+    if (d) {
+      var where = d.exact ? "à cette adresse" : "à " + d.m + " m";
+      var line = "<strong>" + d.n + " " + plural(d.n, "DPE", "DPE") + " " + where + "</strong> depuis 2021";
+      if (d.eteN) line += " · confort d'été : " + [["bon", 0], ["moyen", 1], ["insuffisant", 2]].filter(function (x) { return d.ete[x[1]]; })
+        .map(function (x) { return d.ete[x[1]] + " " + x[0]; }).join(", ");
+      parts.push(line);
+      var facts = [];
+      if (d.year) facts.push("construit vers " + d.year);
+      if (d.prot[0] + d.prot[1]) facts.push(Math.round((100 * d.prot[0]) / (d.prot[0] + d.prot[1])) + " % avec protection solaire extérieure");
+      if (d.trav[0] + d.trav[1]) facts.push(Math.round((100 * d.trav[0]) / (d.trav[0] + d.trav[1])) + " % traversants");
+      if (facts.length) parts.push(facts.join(" · "));
+    }
+    var x = b.bdnb;
+    if (x) {
+      var f2 = [];
+      if (x.annee_construction) f2.push("année " + x.annee_construction);
+      var known = function (t) { return t && !/^ind[eé]termin/i.test(t); };
+      if (known(x.mat_mur_txt)) f2.push("murs : " + x.mat_mur_txt.toLowerCase());
+      if (known(x.mat_toit_txt)) f2.push("toit : " + x.mat_toit_txt.toLowerCase());
+      if (x.hauteur_mean) f2.push(x.hauteur_mean + " m de haut");
+      if (f2.length) parts.push("BDNB : " + f2.join(" · "));
+    }
+    var pre = Object.keys(state.prefilled).map(function (k) { return k === "era" ? "l'époque de construction" : "le confort d'été"; });
+    if (pre.length) parts.push("<em>Prérempli : " + pre.join(" et ") + ". Change-les si ton logement diffère.</em>");
+    if (!parts.length) {
+      if (!b.dpeDone || !b.bdnbDone) parts.push("Recherche des DPE de l'immeuble…");
+      else if (b.failed) parts.push("Les DPE de l'immeuble ne sont pas disponibles dans cette version de la page.");
+      else parts.push("Aucun DPE publié depuis 2021 à moins de 30 m.");
+    }
+    el.innerHTML = parts.map(function (p) { return "<span>" + p + "</span>"; }).join("");
+    el.hidden = false;
   }
 
   // ---------------------------------------------------------------------------
@@ -306,7 +445,7 @@
           var p = f.properties || {};
           return {
             label: p.label || q, lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1],
-            postcode: p.postcode || "", citycode: p.citycode || "", type: p.type || ""
+            postcode: p.postcode || "", citycode: p.citycode || "", type: p.type || "", id: p.id || ""
           };
         });
       }).catch(next);
@@ -350,7 +489,7 @@
     showSuggestions([]);
     $("addr-input").value = r.label;
     markEdited();
-    setLocation({ lon: r.lon, lat: r.lat, precision: r.type === "housenumber" ? "address" : "map", label: r.label });
+    setLocation({ lon: r.lon, lat: r.lat, precision: r.type === "housenumber" ? "address" : "map", label: r.label, banId: r.type === "housenumber" ? r.id : "", approx: r.type !== "housenumber" && r.type !== "street" });
     note(r.type === "housenumber" ? "Adresse localisée." : "Rue localisée. Ajoute le numéro pour plus de précision.");
   }
 
@@ -442,7 +581,9 @@
     $("s-trop").innerHTML = nights(r.now.tropical) + '<span class="u">par été</span>';
 
     var arr = r.heat.arr ? "Paris " + arrName(r.heat.arr.n) : "Paris";
-    $("v-place").textContent = (state.location.label || arr) + " · " + heatSentence(r.heat.delta) + ".";
+    var around = r.heat.built == null ? "" : " (autour : " + Math.round(r.heat.built) + " % bâti, " + Math.round(r.heat.veg) + " % de végétation)";
+    $("v-place").textContent = (state.location.label || arr) + " · " + heatSentence(r.heat.delta) + around + ".";
+    renderBuilding();
 
     var conf = r.confidence;
     var chip = $("v-conf");
@@ -870,6 +1011,8 @@
       var t = e.target;
       if (t.type !== "radio") return;
       state.profile[t.name.slice(2)] = t.value;
+      state.touched[t.name.slice(2)] = true;
+      delete state.prefilled[t.name.slice(2)];
       markEdited();
       update();
     });

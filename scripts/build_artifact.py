@@ -12,7 +12,7 @@ html = read("index.html")
 body = html.split("<!-- BODY:START -->")[1].split("<!-- BODY:END -->")[0].strip()
 fonts = re.search(r'<link rel="stylesheet" href="(https://fonts\.googleapis\.com[^"]+)">', html).group(1)
 css = read("css/style.css")
-scripts = "".join("<script>\n" + read(p) + "\n</script>\n" for p in ("js/data-paris.js", "js/model.js", "js/app.js"))
+scripts = "".join("<script>\n" + read(p) + "\n</script>\n" for p in ("js/data-paris.js", "js/data-heat.js", "js/model.js", "js/app.js"))
 
 page = f"""<title>Fournaise</title>
 <meta name="claude:viewport-fit-sides" content="cover">
