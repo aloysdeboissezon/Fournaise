@@ -166,7 +166,7 @@
     state.profile = Object.assign({}, M.DEFAULT_PROFILE, ex.profile);
     state.location = Object.assign({}, ex.location);
     state.touched = {}; state.prefilled = {}; state.building = null;
-    $("addr-input").value = "";
+    $("addr-input").value = $("map-search-input").value = "";
     syncForm();
     update();
   }
@@ -208,20 +208,33 @@
   function zoneCenter(z) { return CENTER_NUDGE[z.code] || ringCentroid(mainRing(z)); }
   var OUTSIDE = "Ce point est hors de la zone couverte. Fournaise couvre Paris et la petite couronne (Hauts-de-Seine, Seine-Saint-Denis, Val-de-Marne) pour l'instant.";
   var NS = "http://www.w3.org/2000/svg";
-  // Vues de la carte : toute la zone, ou Paris en grand (plus lisible sur téléphone).
+  // Vues prédéfinies : toute la zone, ou Paris en grand (plus lisible sur téléphone).
   var VIEWS = { zone: [MAPB.minLon, MAPB.maxLon, MAPB.minLat, MAPB.maxLat], paris: [2.215, 2.475, 48.812, 48.906] };
-  var mapView = "zone";
+  var ASPECT = MAP_H / MAP_W, W_MIN = 34;
+  var reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  function presetView(name) {
+    var b = VIEWS[name], a = project(b[0], b[3]), z = project(b[1], b[2]);
+    return { cx: (a[0] + z[0]) / 2, cy: (a[1] + z[1]) / 2, w: z[0] - a[0] };
+  }
+  // La vue : centre (cx, cy) et largeur w en unités de la carte (MAP_W = toute la zone).
+  var view = presetView("zone"), viewAnim = 0;
+  function viewBoxOf(v) { var h = v.w * ASPECT; return [v.cx - v.w / 2, v.cy - h / 2, v.w, h]; }
+  function clampView(v) {
+    var w = Math.max(W_MIN, Math.min(MAP_W, v.w)), h = w * ASPECT;
+    return { w: w, cx: Math.max(w / 2, Math.min(MAP_W - w / 2, v.cx)), cy: Math.max(h / 2, Math.min(MAP_H - h / 2, v.cy)) };
+  }
 
-  // Image de la carte de chaleur (carte d'ensemble de 400 m), découpée sur la zone par le SVG.
-  function heatRaster() {
-    var RW = 300, RH = Math.round((RW * MAP_H) / MAP_W);
+  // Image de la carte de chaleur sur le rectangle (x0, y0, x1, y1) de la carte : carte d'ensemble de 400 m,
+  // puis tuiles fines de 100 m là où elles sont chargées. Découpée sur la zone par le SVG.
+  function heatRaster(x0, y0, x1, y1, RW) {
+    var RH = Math.max(1, Math.round((RW * (y1 - y0)) / (x1 - x0)));
     var c = document.createElement("canvas");
     c.width = RW; c.height = RH;
     var ctx = c.getContext("2d");
     var img = ctx.createImageData(RW, RH);
     for (var y = 0; y < RH; y++) {
       for (var x = 0; x < RW; x++) {
-        var ll = unproject(((x + 0.5) / RW) * MAP_W, ((y + 0.5) / RH) * MAP_H);
+        var ll = unproject(x0 + ((x + 0.5) / RW) * (x1 - x0), y0 + ((y + 0.5) / RH) * (y1 - y0));
         var col = ramp(MAP_STOPS, M.localHeat(ll[0], ll[1]).delta);
         var o = (y * RW + x) * 4;
         img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 210;
@@ -232,20 +245,98 @@
   }
 
   // Position (lon, lat) d'un événement souris sur la carte, quelle que soit la vue.
-  function eventLonLat(svg, ev) {
+  function eventUnits(svg, ev) {
     var pt = svg.createSVGPoint();
     pt.x = ev.clientX; pt.y = ev.clientY;
     var p = pt.matrixTransform(svg.getScreenCTM().inverse());
-    return unproject(p.x, p.y);
+    return [p.x, p.y];
+  }
+  function eventLonLat(svg, ev) {
+    var p = eventUnits(svg, ev);
+    return unproject(p[0], p[1]);
   }
 
-  function setMapView(v) {
-    mapView = v;
-    var b = VIEWS[v], a = project(b[0], b[3]), z = project(b[1], b[2]);
-    $("map").setAttribute("viewBox", a[0].toFixed(1) + " " + a[1].toFixed(1) + " " + (z[0] - a[0]).toFixed(1) + " " + (z[1] - a[1]).toFixed(1));
-    $("map").classList.toggle("zoomed", v === "paris");
-    Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (btn) { btn.setAttribute("aria-pressed", btn.dataset.view === v ? "true" : "false"); });
+  function applyView(v) {
+    view = clampView(v);
+    var svg = $("map");
+    svg.setAttribute("viewBox", viewBoxOf(view).map(function (n) { return n.toFixed(1); }).join(" "));
+    svg.style.setProperty("--mk", (view.w / MAP_W).toFixed(3));
+    svg.classList.toggle("zoomed", view.w < 420);
+    svg.classList.toggle("zoom-in", view.w < 150);
+    var pv = presetView("paris");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (btn) {
+      var on = btn.dataset.view === "zone" ? view.w > MAP_W - 1 : Math.abs(view.w - pv.w) < 6 && Math.abs(view.cx - pv.cx) < 12 && Math.abs(view.cy - pv.cy) < 12;
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    var zi = $("zoom-in"), zo = $("zoom-out");
+    if (zi) { zi.disabled = view.w <= W_MIN + 0.5; zo.disabled = view.w >= MAP_W - 0.5; }
     placePin();
+    scheduleDetail();
+  }
+
+  // Déplacement animé de la vue (ms = 0 : immédiat).
+  function flyTo(target, ms) {
+    target = clampView(target);
+    cancelAnimationFrame(viewAnim);
+    if (ms === 0 || reducedMotion) { applyView(target); return; }
+    var from = view, t0 = performance.now(), dur = ms || 380;
+    (function step(now) {
+      var t = Math.min(1, (now - t0) / dur), e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      applyView({
+        w: Math.exp(Math.log(from.w) + (Math.log(target.w) - Math.log(from.w)) * e),
+        cx: from.cx + (target.cx - from.cx) * e, cy: from.cy + (target.cy - from.cy) * e
+      });
+      if (t < 1) viewAnim = requestAnimationFrame(step);
+    })(t0);
+  }
+  function setMapView(name) { flyTo(presetView(name)); }
+  // Zoom autour d'un point de la carte (le centre de la vue par défaut).
+  function zoomAt(factor, ax, ay, ms) {
+    if (ax == null) { ax = view.cx; ay = view.cy; }
+    var w = Math.max(W_MIN, Math.min(MAP_W, view.w * factor)), k = w / view.w;
+    var v = { w: w, cx: ax - (ax - view.cx) * k, cy: ay - (ay - view.cy) * k };
+    if (ms) flyTo(v, ms); else { cancelAnimationFrame(viewAnim); applyView(v); }
+  }
+  function focusOn(lon, lat, w) {
+    var p = project(lon, lat);
+    flyTo({ cx: p[0], cy: p[1], w: w || 50 });
+  }
+  function focusZone(z) {
+    var xs = [], ys = [];
+    mainRing(z).forEach(function (c) { var p = project(c[0], c[1]); xs.push(p[0]); ys.push(p[1]); });
+    var bw = Math.max.apply(null, xs) - Math.min.apply(null, xs), bh = Math.max.apply(null, ys) - Math.min.apply(null, ys);
+    var c = zoneCenter(z), p = project(c[0], c[1]);
+    flyTo({ cx: p[0], cy: p[1], w: Math.max(60, Math.min(300, Math.max(bw, bh / ASPECT) * 1.5)) });
+  }
+  // Si le repère sort de la vue (adresse choisie ailleurs, flèches du clavier), la vue le rejoint.
+  function revealPin() {
+    if (!state.location) return;
+    var p = project(state.location.lon, state.location.lat), b = viewBoxOf(view), m = 0.08;
+    if (p[0] < b[0] + b[2] * m || p[0] > b[0] + b[2] * (1 - m) || p[1] < b[1] + b[3] * m || p[1] > b[1] + b[3] * (1 - m)) flyTo({ cx: p[0], cy: p[1], w: view.w });
+  }
+
+  // Détail fin : quand on zoome, la carte est redessinée à partir des tuiles de 100 m de la zone affichée.
+  var detailTimer = 0, detailGen = 0;
+  function scheduleDetail() { clearTimeout(detailTimer); detailTimer = setTimeout(drawDetail, 180); }
+  function drawDetail() {
+    var img = document.getElementById("map-detail");
+    if (!img) return;
+    if (view.w > 320) { img.setAttribute("visibility", "hidden"); return; }
+    var gen = ++detailGen, b = viewBoxOf(view), m = b[2] * 0.2;
+    var x0 = b[0] - m, y0 = b[1] - m, x1 = b[0] + b[2] + m, y1 = b[1] + b[3] + m, need = [];
+    for (var i = 0; i <= 4; i++) {
+      for (var j = 0; j <= 4; j++) {
+        var ll = unproject(x0 + ((x1 - x0) * i) / 4, y0 + ((y1 - y0) * j) / 4);
+        if (!M.hasTiles(ll[0], ll[1])) M.tilesFor(ll[0], ll[1]).forEach(function (k) { if (need.indexOf(k) < 0) need.push(k); });
+      }
+    }
+    Promise.all(need.map(loadTile)).catch(function () {}).then(function () {
+      if (gen !== detailGen) return;
+      img.setAttribute("href", heatRaster(x0, y0, x1, y1, 340));
+      img.setAttribute("x", x0.toFixed(1)); img.setAttribute("y", y0.toFixed(1));
+      img.setAttribute("width", (x1 - x0).toFixed(1)); img.setAttribute("height", (y1 - y0).toFixed(1));
+      img.setAttribute("visibility", "visible");
+    });
   }
 
   function renderMap() {
@@ -259,44 +350,143 @@
       var p = project.apply(null, zoneCenter(z));
       return '<text class="arr-label" x="' + p[0].toFixed(1) + '" y="' + (p[1] + 3).toFixed(1) + '" text-anchor="middle">' + z.n + "</text>";
     }).join("");
+    var comLabels = ZONES.filter(function (z) { return z.dep !== "75"; }).map(function (z) {
+      var p = project.apply(null, zoneCenter(z));
+      return '<text class="com-label" x="' + p[0].toFixed(1) + '" y="' + p[1].toFixed(1) + '" text-anchor="middle">' + escapeHtml(z.name) + "</text>";
+    }).join("");
     // Seine, Marne et plans d'eau (BD TOPO), codés en entiers de 1e-4 degré : premier point puis écarts.
     var water = (D.heat.water || []).map(function (f) {
       var x = 0, y = 0, ring = [];
       for (var i = 0; i < f.length; i += 2) { x += f[i]; y += f[i + 1]; ring.push([x / 1e4, y / 1e4]); }
       return ringPath(ring);
     }).join("");
+    svg.style.aspectRatio = MAP_W + " / " + MAP_H;
     svg.innerHTML =
       '<defs><clipPath id="zone-clip"><path d="' + allPaths + '"/></clipPath></defs>' +
-      '<image id="map-heat" x="0" y="0" width="' + MAP_W + '" height="' + MAP_H + '" preserveAspectRatio="none" clip-path="url(#zone-clip)" href="' + heatRaster() + '"/>' +
+      '<image id="map-heat" x="0" y="0" width="' + MAP_W + '" height="' + MAP_H + '" preserveAspectRatio="none" clip-path="url(#zone-clip)" href="' + heatRaster(0, 0, MAP_W, MAP_H, 300) + '"/>' +
+      '<image id="map-detail" visibility="hidden" preserveAspectRatio="none" clip-path="url(#zone-clip)"/>' +
       '<path class="water" d="' + water + '" clip-path="url(#zone-clip)"/>' +
       ZONES.map(function (z) { return '<path class="' + (z.dep === "75" ? "z-arr" : "z-com") + '" d="' + z.rings.map(ringPath).join("") + '"/>'; }).join("") +
-      '<g class="arr-labels">' + arrLabels + "</g>" + depLabels +
+      '<g class="arr-labels">' + arrLabels + '</g><g class="com-labels">' + comLabels + "</g>" + depLabels +
       '<g id="map-pin" visibility="hidden"><circle class="pin-halo" r="15"/><circle class="pin-dot" r="6"/></g>';
-    setMapView(mapView);
+    applyView(view);
     Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (btn) {
       btn.addEventListener("click", function () { setMapView(btn.dataset.view); });
     });
-    svg.addEventListener("click", function (ev) {
-      var ll = eventLonLat(svg, ev);
-      var z = M.zoneAt(ll[0], ll[1], ZONES);
-      if (!z) { note(OUTSIDE, true); return; }
-      markEdited();
-      setLocation({ lon: ll[0], lat: ll[1], precision: "map", label: "Point placé sur la carte, " + z.name });
-      note("Position enregistrée. Tu peux la déplacer en cliquant ailleurs.");
+    wireMapGestures(svg);
+  }
+
+  // Gestes : glisser pour déplacer, pincer ou Ctrl + molette pour zoomer, toucher ou cliquer pour placer le repère.
+  // Sur écran tactile, la carte laisse d'abord défiler la page : « Déplacer » active le glissement à un doigt.
+  function wireMapGestures(svg) {
+    var box = svg.parentNode, ptrs = {}, g = null, hintTimer = 0;
+    var lockOn = function () { return box.classList.contains("pan-lock"); };
+    function snapshot() {
+      var ids = Object.keys(ptrs);
+      g = { view0: Object.assign({}, view), rect: svg.getBoundingClientRect(), p0: {}, moved: g ? g.moved : false };
+      ids.forEach(function (id) { g.p0[id] = ptrs[id].slice(); });
+      if (ids.length > 1) g.moved = true;
+    }
+    function unitAt(px, py) {
+      var v = g.view0, r = g.rect, upp = v.w / r.width;
+      return [v.cx - v.w / 2 + (px - r.left) * upp, v.cy - (v.w * ASPECT) / 2 + (py - r.top) * upp];
+    }
+    svg.addEventListener("pointerdown", function (ev) {
+      if (ev.pointerType === "mouse" && ev.button !== 0) return;
+      cancelAnimationFrame(viewAnim);
+      ptrs[ev.pointerId] = [ev.clientX, ev.clientY];
+      if (Object.keys(ptrs).length === 1) g = null;
+      snapshot();
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) {}
     });
+    svg.addEventListener("pointermove", function (ev) {
+      if (!ptrs[ev.pointerId] || !g) return;
+      ptrs[ev.pointerId] = [ev.clientX, ev.clientY];
+      var ids = Object.keys(ptrs), r = g.rect;
+      if (ids.length === 1) {
+        var p0 = g.p0[ids[0]], dx = ev.clientX - p0[0], dy = ev.clientY - p0[1];
+        if (Math.sqrt(dx * dx + dy * dy) > 6) g.moved = true;
+        if (g.moved && !(ev.pointerType === "touch" && lockOn())) {
+          var upp = g.view0.w / r.width;
+          applyView({ w: g.view0.w, cx: g.view0.cx - dx * upp, cy: g.view0.cy - dy * upp });
+        }
+      } else if (ids.length === 2) {
+        var a = ptrs[ids[0]], b = ptrs[ids[1]], a0 = g.p0[ids[0]], b0 = g.p0[ids[1]];
+        var d1 = Math.hypot(a[0] - b[0], a[1] - b[1]), d0 = Math.hypot(a0[0] - b0[0], a0[1] - b0[1]);
+        if (d0 < 10 || d1 < 10) return;
+        var m0 = unitAt((a0[0] + b0[0]) / 2, (a0[1] + b0[1]) / 2);
+        var w = Math.max(W_MIN, Math.min(MAP_W, (g.view0.w * d0) / d1)), upp1 = w / r.width;
+        applyView({ w: w, cx: m0[0] - ((a[0] + b[0]) / 2 - r.left - r.width / 2) * upp1, cy: m0[1] - ((a[1] + b[1]) / 2 - r.top - r.height / 2) * upp1 });
+      }
+    });
+    function release(ev, cancelled) {
+      if (!ptrs[ev.pointerId]) return;
+      var wasSingle = Object.keys(ptrs).length === 1, wasMoved = g && g.moved;
+      delete ptrs[ev.pointerId];
+      if (Object.keys(ptrs).length) snapshot(); else g = null;
+      if (!cancelled && wasSingle && !wasMoved) placeFromEvent(ev);
+    }
+    svg.addEventListener("pointerup", function (ev) { release(ev, false); });
+    svg.addEventListener("pointercancel", function (ev) { release(ev, true); });
+    svg.addEventListener("wheel", function (ev) {
+      if (!(ev.ctrlKey || ev.metaKey)) {
+        var hint = $("map-hint");
+        hint.hidden = false; clearTimeout(hintTimer);
+        hintTimer = setTimeout(function () { hint.hidden = true; }, 1600);
+        return;
+      }
+      ev.preventDefault();
+      var u = eventUnits(svg, ev), d = Math.max(-60, Math.min(60, ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY));
+      zoomAt(Math.exp(d * 0.006), u[0], u[1]);
+    }, { passive: false });
+    $("zoom-in").addEventListener("click", function () { zoomAt(0.55, null, null, 220); });
+    $("zoom-out").addEventListener("click", function () { zoomAt(1 / 0.55, null, null, 220); });
+    var pan = $("map-pan");
+    if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+      box.classList.add("pan-lock");
+      pan.hidden = false;
+      pan.addEventListener("click", function () {
+        var on = lockOn();
+        box.classList.toggle("pan-lock", !on);
+        pan.setAttribute("aria-pressed", on ? "true" : "false");
+        note(on ? "Glisse la carte avec un doigt. Touche « Déplacer » pour reprendre le défilement de la page." : "Le défilement de la page est rétabli.");
+      });
+    }
+    $("map-locate").addEventListener("click", function () {
+      if (!navigator.geolocation) { note("La localisation n'est pas disponible sur cet appareil. Tape une adresse ou clique sur la carte.", true); return; }
+      note("Recherche de ta position…");
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        var lon = pos.coords.longitude, lat = pos.coords.latitude, z = M.zoneAt(lon, lat, ZONES);
+        if (!z) { note(OUTSIDE, true); return; }
+        markEdited();
+        setLocation({ lon: lon, lat: lat, precision: "map", label: "Ma position, " + z.name });
+        focusOn(lon, lat, 50);
+        note("Position trouvée. Elle ne quitte pas ton navigateur.");
+      }, function () { note("Position refusée ou indisponible : tape une adresse ou clique sur la carte.", true); }, { timeout: 8000, maximumAge: 60000 });
+    });
+  }
+
+  function placeFromEvent(ev) {
+    var ll = eventLonLat($("map"), ev);
+    var z = M.zoneAt(ll[0], ll[1], ZONES);
+    if (!z) { note(OUTSIDE, true); return; }
+    markEdited();
+    setLocation({ lon: ll[0], lat: ll[1], precision: "map", label: "Point placé sur la carte, " + z.name });
+    note("Position enregistrée. Tu peux la déplacer en cliquant ailleurs.");
   }
 
   function refreshMapHeat() {
     var img = document.getElementById("map-heat");
-    if (img) img.setAttribute("href", heatRaster());
+    if (img) img.setAttribute("href", heatRaster(0, 0, MAP_W, MAP_H, 300));
+    drawDetail();
   }
 
   function placePin() {
     var pin = $("map-pin");
     if (!pin || !state.location) return;
     var p = project(state.location.lon, state.location.lat);
-    var k = mapView === "paris" ? 0.45 : 1;  // le repère garde la même taille à l'écran quand on zoome
-    pin.setAttribute("transform", "translate(" + p[0].toFixed(1) + " " + p[1].toFixed(1) + ") scale(" + k + ")");
+    var k = Math.max(0.1, view.w / MAP_W);  // le repère garde la même taille à l'écran quand on zoome
+    pin.setAttribute("transform", "translate(" + p[0].toFixed(1) + " " + p[1].toFixed(1) + ") scale(" + k.toFixed(3) + ")");
     pin.setAttribute("visibility", "visible");
   }
 
@@ -331,6 +521,7 @@
   function setZone(z) {
     var c = zoneCenter(z);
     setLocation({ lon: c[0], lat: c[1], precision: "arr", label: z.dep === "75" ? "Centre du " + arrName(z.n) + " arrondissement" : "Centre de " + z.name });
+    focusZone(z);
     note("Position approximative au centre " + (z.dep === "75" ? "de l'arrondissement" : "de la commune") + ". Clique sur la carte pour la préciser.");
   }
 
@@ -575,26 +766,19 @@
     el.classList.toggle("warn", !!warn);
   }
 
-  var suggestions = [], activeIdx = -1, debounce = null, lastQuery = "";
-
-  function showSuggestions(list) {
-    suggestions = list;
-    activeIdx = -1;
-    var ul = $("addr-suggest");
-    if (!list.length) { ul.hidden = true; ul.innerHTML = ""; return; }
-    ul.innerHTML = list.map(function (r, i) {
+  function suggestionsHtml(list) {
+    return list.map(function (r, i) {
       var m = /^(.*?)\s(\d{5}\s.*)$/.exec(r.label);
       var text = m ? escapeHtml(m[1]) + "<small>" + escapeHtml(m[2]) + "</small>" : escapeHtml(r.label);
       return '<li role="option" id="sug-' + i + '" data-i="' + i + '"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.3" fill="currentColor"/></svg><span>' + text + "</span></li>";
     }).join("");
-    ul.hidden = false;
   }
 
   function chooseSuggestion(r) {
-    showSuggestions([]);
-    $("addr-input").value = r.label;
+    $("addr-input").value = $("map-search-input").value = r.label;
     markEdited();
     setLocation({ lon: r.lon, lat: r.lat, precision: r.type === "housenumber" ? "address" : "map", label: r.label, banId: r.type === "housenumber" ? r.id : "", approx: r.type !== "housenumber" && r.type !== "street" });
+    focusOn(r.lon, r.lat, r.type === "housenumber" ? 46 : 90);
     note(r.type === "housenumber" ? "Adresse localisée." : "Rue localisée. Ajoute le numéro pour plus de précision.");
   }
 
@@ -609,19 +793,29 @@
     }
   }
 
-  function wireAddress() {
-    var input = $("addr-input"), ul = $("addr-suggest");
+  // Un champ d'adresse avec sa liste de suggestions : celui du formulaire et celui posé sur la carte.
+  function makeSearch(input, ul, id) {
+    var suggestions = [], activeIdx = -1, debounce = null, lastQuery = "";
+    function show(list) {
+      suggestions = list;
+      activeIdx = -1;
+      input.removeAttribute("aria-activedescendant");
+      ul.innerHTML = suggestionsHtml(list).replace(/id="sug-/g, 'id="' + id + '-sug-');
+      ul.hidden = !list.length;
+    }
+    function choose(r) { show([]); other().show([]); chooseSuggestion(r); }
+    function other() { return input.id === "addr-input" ? searches.map : searches.main; }
     input.addEventListener("input", function () {
       var q = input.value.trim();
       clearTimeout(debounce);
-      if (q.length < 5 || isDown()) { showSuggestions([]); return; }
+      if (q.length < 5 || isDown()) { show([]); return; }
       debounce = setTimeout(function () {
         lastQuery = q;
         busy(true);
         geocode(q).then(function (res) {
           if (lastQuery !== q) return;
-          showSuggestions(zoneOnly(res).slice(0, 5));
-        }).catch(function () { state.networkDown = Date.now(); showSuggestions([]); }).then(function () { if (lastQuery === q) busy(false); });
+          show(zoneOnly(res).slice(0, 5));
+        }).catch(function () { state.networkDown = Date.now(); show([]); }).then(function () { if (lastQuery === q) busy(false); });
       }, 280);
     });
     input.addEventListener("keydown", function (e) {
@@ -630,32 +824,44 @@
         e.preventDefault();
         activeIdx = (activeIdx + (e.key === "ArrowDown" ? 1 : -1) + suggestions.length) % suggestions.length;
         Array.prototype.forEach.call(ul.children, function (li, i) { li.setAttribute("aria-selected", i === activeIdx ? "true" : "false"); });
-        input.setAttribute("aria-activedescendant", "sug-" + activeIdx);
+        input.setAttribute("aria-activedescendant", id + "-sug-" + activeIdx);
       } else if (e.key === "Escape") {
-        showSuggestions([]);
+        show([]);
       }
     });
     ul.addEventListener("mousedown", function (e) {
       var li = e.target.closest("li");
-      if (li) { e.preventDefault(); chooseSuggestion(suggestions[+li.dataset.i]); }
+      if (li) { e.preventDefault(); choose(suggestions[+li.dataset.i]); }
     });
-    input.addEventListener("blur", function () { setTimeout(function () { showSuggestions([]); }, 150); });
+    input.addEventListener("blur", function () { setTimeout(function () { show([]); }, 150); });
+    return {
+      show: show,
+      submit: function () {
+        if (!ul.hidden && suggestions.length) { choose(suggestions[Math.max(0, activeIdx)]); return; }
+        var q = input.value.trim();
+        if (!q) { note("Tape une adresse, ou clique sur la carte.", true); return; }
+        $("addr-input").value = $("map-search-input").value = q;
+        if (isDown()) { offlineFallback(q); return; }
+        note("Recherche de l'adresse…");
+        lastQuery = q;
+        busy(true);
+        geocode(q).then(function (res) {
+          busy(false);
+          var inside = zoneOnly(res);
+          if (inside.length) chooseSuggestion(inside[0]);
+          else if (res.length) note("Cette adresse est hors de Paris et de la petite couronne. Fournaise couvre Paris, les Hauts-de-Seine, la Seine-Saint-Denis et le Val-de-Marne pour l'instant.", true);
+          else note("Adresse introuvable. Vérifie l'orthographe ou clique sur la carte.", true);
+        }).catch(function () { busy(false); state.networkDown = Date.now(); offlineFallback(q); });
+      }
+    };
+  }
+  var searches = {};
+  function wireAddress() {
+    searches.main = makeSearch($("addr-input"), $("addr-suggest"), "sug");
+    searches.map = makeSearch($("map-search-input"), $("map-suggest"), "msug");
     $("form").addEventListener("submit", function (e) {
       e.preventDefault();
-      if (!ul.hidden && suggestions.length) { chooseSuggestion(suggestions[Math.max(0, activeIdx)]); return; }
-      var q = input.value.trim();
-      if (!q) { note("Tape une adresse, ou clique sur la carte.", true); return; }
-      if (isDown()) { offlineFallback(q); return; }
-      note("Recherche de l'adresse…");
-      lastQuery = q;
-      busy(true);
-      geocode(q).then(function (res) {
-        busy(false);
-        var inside = zoneOnly(res);
-        if (inside.length) chooseSuggestion(inside[0]);
-        else if (res.length) note("Cette adresse est hors de Paris et de la petite couronne. Fournaise couvre Paris, les Hauts-de-Seine, la Seine-Saint-Denis et le Val-de-Marne pour l'instant.", true);
-        else note("Adresse introuvable. Vérifie l'orthographe ou clique sur la carte.", true);
-      }).catch(function () { busy(false); state.networkDown = Date.now(); offlineFallback(q); });
+      (document.activeElement === $("map-search-input") ? searches.map : searches.main).submit();
     });
   }
 
@@ -1018,7 +1224,7 @@
     state.profile = profile;
     state.location = { lon: lon, lat: lat, precision: "map", label: "Position partagée, " + zone.name, approx: true };
     state.prefilled = {}; state.building = null;
-    $("addr-input").value = "";
+    $("addr-input").value = $("map-search-input").value = "";
     syncForm();
     note("Lien partagé : position arrondie à environ 100 m. Tu peux la préciser en tapant une adresse.");
     update();
@@ -1098,6 +1304,7 @@
   function wireMapKeys() {
     var svg = $("map"), timer = null, cur = null;
     svg.addEventListener("keydown", function (e) {
+      if (e.key === "+" || e.key === "=" || e.key === "-" || e.key === "_") { e.preventDefault(); zoomAt(e.key === "-" || e.key === "_" ? 1 / 0.55 : 0.55, null, null, 200); return; }
       var dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
       if (!dir) return;
       e.preventDefault();
@@ -1174,6 +1381,7 @@
     renderVisit();
     renderShare(r);
     placePin();
+    revealPin();
     syncUrl();
     document.dispatchEvent(new CustomEvent("fournaise:update"));
     $("loc-text").innerHTML = "<strong>" + escapeHtml(state.location.label) + "</strong>";
