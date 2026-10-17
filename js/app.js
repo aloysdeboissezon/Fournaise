@@ -918,14 +918,6 @@
       " par été, " + nights(r.y2050.n26) + " en 2050. " + shareLine(r) + (url ? " " + url : "");
   }
   function renderShare(r) {
-    var story = $("story");
-    var c1 = scoreColor(Math.min(10, r.score + 1.2)), c2 = scoreColor(Math.min(10, r.score + 3));
-    story.style.setProperty("--story-a", c1);
-    story.style.setProperty("--story-b", c2);
-    $("story-score").innerHTML = r.scoreRounded + "<small>/10</small>";
-    $("story-line").textContent = shareLine(r);
-    var arr = r.heat.zone ? r.heat.zone.name : "Paris";
-    $("story-meta").textContent = nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") + " par été · " + arr;
     $("share-text").textContent = shareText(r);
   }
 
@@ -942,47 +934,6 @@
     var sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
-  }
-
-  function drawShareImage(r) {
-    var W = 1080, H = 1350;
-    var c = document.createElement("canvas");
-    c.width = W; c.height = H;
-    var ctx = c.getContext("2d");
-    var g = ctx.createRadialGradient(W * 0.2, 0, 50, W * 0.4, H * 0.4, H * 1.05);
-    g.addColorStop(0, scoreColor(Math.min(10, r.score + 1.2)));
-    g.addColorStop(0.55, scoreColor(Math.min(10, r.score + 3)));
-    g.addColorStop(1, "#24061b");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-    var shade = ctx.createLinearGradient(0, 0, 0, H);
-    shade.addColorStop(0, "rgba(12,6,14,0.28)");
-    shade.addColorStop(1, "rgba(12,6,14,0.7)");
-    ctx.fillStyle = shade;
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#ffffff";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = "800 52px Unbounded, 'Arial Black', sans-serif";
-    ctx.fillText("fournaise", 80, 130);
-    ctx.font = "800 420px Unbounded, 'Arial Black', sans-serif";
-    var s = String(r.scoreRounded);
-    ctx.fillText(s, 70, 760);
-    var sw = ctx.measureText(s).width;
-    ctx.globalAlpha = 0.8;
-    ctx.font = "700 120px Unbounded, 'Arial Black', sans-serif";
-    ctx.fillText("/10", 90 + sw, 760);
-    ctx.globalAlpha = 1;
-    ctx.font = "700 76px Unbounded, 'Arial Black', sans-serif";
-    ctx.fillText(shareLine(r), 80, 900);
-    ctx.font = "500 44px 'Instrument Sans', 'Segoe UI', sans-serif";
-    var arr = r.heat.zone ? r.heat.zone.name : "Paris";
-    ctx.fillText(nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") + " par été", 80, 1010);
-    ctx.fillText(nights(r.y2050.n26) + " en 2050 · " + arr, 80, 1070);
-    ctx.globalAlpha = 0.75;
-    ctx.font = "500 34px 'Instrument Sans', 'Segoe UI', sans-serif";
-    ctx.fillText("Score de chaleur estimé avant de louer · Fournaise", 80, 1250);
-    ctx.globalAlpha = 1;
-    return c;
   }
 
   var downloads = null;
@@ -1017,43 +968,11 @@
         else fallback();
       } catch (e) { fallback(); }
     });
-    var imgBtn = $("img-btn");
-    var hasClaude = window.claude && typeof window.claude.use === "function";
-    if (hasClaude) {
-      imgBtn.hidden = true;
-      window.claude.use("downloads").then(function (ns) { downloads = ns; imgBtn.hidden = !ns; }, function () { imgBtn.hidden = true; });
+    // Dans l'environnement Claude, l'enregistrement de fichier passe par l'espace « downloads ».
+    if (window.claude && typeof window.claude.use === "function") {
+      $("img-btn").hidden = true;
+      window.claude.use("downloads").then(function (ns) { downloads = ns; $("img-btn").hidden = !ns; }, function () { $("img-btn").hidden = true; });
     }
-    imgBtn.addEventListener("click", function () {
-      if (!state.result) return;
-      var ready = document.fonts && document.fonts.load
-        ? Promise.all([document.fonts.load("800 100px Unbounded"), document.fonts.load("500 40px 'Instrument Sans'")]).catch(function () {})
-        : Promise.resolve();
-      ready.then(function () {
-        var canvas = drawShareImage(state.result);
-        canvas.toBlob(function (blob) {
-          if (!blob) { toast("L'image n'a pas pu être créée."); return; }
-          track("partage-image");
-          var file = null;
-          try { file = new File([blob], "fournaise-score.png", { type: "image/png" }); } catch (e) {}
-          if (!downloads && file && navigator.canShare && navigator.canShare({ files: [file] })) {
-            navigator.share({ files: [file], title: "Fournaise", text: $("share-text").textContent }).catch(function () {});
-          } else if (downloads) {
-            downloads.save({ filename: "fournaise-score.png", data: blob }).then(function () { toast("Image enregistrée."); }, function (err) {
-              if (err && err.code === "declined") return;
-              toast("L'enregistrement n'est pas disponible ici.");
-            });
-          } else {
-            var a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "fournaise-score.png";
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-            toast("Image enregistrée.");
-          }
-        }, "image/png");
-      });
-    });
   }
 
 
@@ -1256,6 +1175,7 @@
     renderShare(r);
     placePin();
     syncUrl();
+    document.dispatchEvent(new CustomEvent("fournaise:update"));
     $("loc-text").innerHTML = "<strong>" + escapeHtml(state.location.label) + "</strong>";
     Array.prototype.forEach.call(document.querySelectorAll("[data-example]"), function (b) {
       b.setAttribute("aria-pressed", b.dataset.example === state.example ? "true" : "false");
@@ -1354,7 +1274,18 @@
     refreshMapHeat();
     renderHero();
     if (state.result) update();
+    document.dispatchEvent(new CustomEvent("fournaise:theme"));
   }
+
+  // Ce que les modules complémentaires (js/share.js, …) peuvent utiliser.
+  window.FournaiseApp = {
+    state: state, M: M, D: D, ZONES: ZONES,
+    nights: nights, plural: plural, fr: fr, roundNights: roundNights, escapeHtml: escapeHtml,
+    scoreColor: scoreColor, tempColor: tempColor, toast: toast, track: track,
+    shareLine: shareLine, shareText: shareText, shareUrl: shareUrl,
+    downloads: function () { return downloads; },
+    siteHost: function () { return "aloysdeboissezon.github.io/Fournaise"; }
+  };
 
   function init() {
     readPalette();

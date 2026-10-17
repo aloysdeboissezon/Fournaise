@@ -6,7 +6,7 @@ const path = require("node:path");
 const zlib = require("node:zlib");
 
 const root = path.join(__dirname, "..");
-const BUDGET = { "index.html": 14000, "css/style.css": 12000, "css/fonts.css": 2000, "js/app.js": 26000, "js/model.js": 10000, "js/data-heat.js": 15000, "js/data-paris.js": 21000 };
+const BUDGET = { "index.html": 14000, "css/style.css": 12000, "css/fonts.css": 2000, "js/app.js": 26000, "js/share.js": 4000, "js/model.js": 10000, "js/data-heat.js": 15000, "js/data-paris.js": 21000 };
 
 test("poids gzip de la page et de ses scripts", () => {
   for (const [file, max] of Object.entries(BUDGET)) {
