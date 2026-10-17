@@ -1,7 +1,7 @@
 {
   "name": "fournaise",
   "private": true,
-  "description": "Score de chaleur d'un logement parisien (site statique)",
+  "description": "Score de chaleur d'un logement à Paris et en petite couronne (site statique)",
   "scripts": {
     "test": "node --test tests/model.test.js tests/budget.test.js",
     "test:a11y": "node tests/a11y.js",

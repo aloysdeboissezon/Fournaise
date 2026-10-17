@@ -1,5 +1,5 @@
 /* Fournaise : service worker minimal. Réseau d'abord, copie en cache si le réseau échoue (hors ligne). */
-var CACHE = "fournaise-v1";
+var CACHE = "fournaise-v2";
 var CORE = ["./", "index.html", "css/style.css", "css/fonts.css", "js/data-paris.js", "js/data-heat.js", "js/model.js", "js/analytics.js", "js/app.js",
   "fonts/instrument-sans-046090.woff2", "fonts/unbounded-06f2e4.woff2", "fonts/ibm-plex-mono-d196e8.woff2", "fonts/ibm-plex-mono-a7544c.woff2", "img/favicon.svg", "site.webmanifest"];
 

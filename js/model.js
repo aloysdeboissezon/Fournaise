@@ -1,12 +1,13 @@
 /*
- * Fournaise — modèle de chaleur intérieure (version 1, Paris).
+ * Fournaise — modèle de chaleur intérieure (Paris et petite couronne).
  *
  * Tout le calcul tourne dans le navigateur, sans serveur. Chaque coefficient
  * est écrit ici en clair pour que le score reste vérifiable.
  *
  * Chaîne de calcul, pour chaque jour du 1er juin au 30 septembre des 10 derniers étés :
  *   1. Relevés réels Tn / Tx de la station Paris-Montsouris.
- *   2. Correction de quartier (îlot de chaleur, grille IGN de 100 m) : Tn + U·f(nuit), Tx + 0,25·U.
+ *   2. Correction de quartier (îlot de chaleur, grille IGN de 100 m, échelle calée sur les stations
+ *      Météo-France de la zone) : Tn + U·f(nuit), Tx + 0,25·U.
  *   3. Moyenne glissante sur 4 jours (inertie du bâtiment) : Trm.
  *   4. Température « libre » du logement le soir :
  *        Tlibre = Trm + apports internes + s · ensoleillement(Tx)
@@ -17,20 +18,12 @@
   "use strict";
 
   // ---------------------------------------------------------------------------
-  // Géographie de Paris
+  // Géographie : Paris et petite couronne (Hauts-de-Seine, Seine-Saint-Denis, Val-de-Marne)
   // ---------------------------------------------------------------------------
   var MONTSOURIS = [2.3378, 48.8222];
-  var BBOX = { minLon: 2.224, maxLon: 2.47, minLat: 48.815, maxLat: 48.903 };
+  var BBOX = { minLon: 2.137, maxLon: 2.624, minLat: 48.682, maxLat: 49.018 };
   var KM_LON = 111.32 * Math.cos((48.86 * Math.PI) / 180); // km par degré de longitude
   var KM_LAT = 110.57;
-
-  // Tracé simplifié de la Seine, d'amont en aval (dessin de la carte uniquement).
-  var SEINE = [
-    [2.414, 48.8235], [2.392, 48.83], [2.378, 48.8395], [2.366, 48.8465], [2.359, 48.8505],
-    [2.352, 48.8535], [2.344, 48.8565], [2.338, 48.8585], [2.329, 48.861], [2.32, 48.864],
-    [2.31, 48.8645], [2.302, 48.8635], [2.2945, 48.86], [2.287, 48.8545], [2.28, 48.8485],
-    [2.273, 48.841], [2.263, 48.834]
-  ];
 
   function pointInRing(lon, lat, ring) {
     var inside = false;
@@ -41,54 +34,91 @@
     return inside;
   }
 
-  function arrondissementAt(lon, lat, arrs) {
-    if (!arrs) return null;
-    for (var i = 0; i < arrs.length; i++) {
-      for (var r = 0; r < arrs[i].rings.length; r++) {
-        if (pointInRing(lon, lat, arrs[i].rings[r])) return arrs[i];
+  // Arrondissement de Paris ou commune de la petite couronne qui contient le point.
+  function zoneAt(lon, lat, zones) {
+    if (!zones || lon < BBOX.minLon || lon > BBOX.maxLon || lat < BBOX.minLat || lat > BBOX.maxLat) return null;
+    for (var i = 0; i < zones.length; i++) {
+      for (var r = 0; r < zones[i].rings.length; r++) {
+        if (pointInRing(lon, lat, zones[i].rings[r])) return zones[i];
       }
     }
     return null;
   }
 
   /*
-   * Îlot de chaleur nocturne : grille de 100 m précalculée par scripts/build_heat.py
-   * (js/data-heat.js) à partir des bâtiments, de la végétation et de l'eau de la BD TOPO (IGN).
+   * Îlot de chaleur nocturne : grille de 100 m précalculée par scripts/build_heat.py à partir des bâtiments,
+   * de la végétation et de l'eau de la BD TOPO (IGN). js/data-heat.js embarque une carte d'ensemble à 400 m ;
+   * les tuiles fines (data/heat/, 4 km de côté) sont ajoutées par addHeatTile quand une adresse est choisie.
    * delta = écart de température nocturne par rapport à la station Montsouris, par nuit chaude.
    */
-  var GRID = null;
+  var GRID = null, TILES = {};
   function grid() {
     if (GRID === null) GRID = (root.FOURNAISE_DATA && root.FOURNAISE_DATA.heat) || false;
     return GRID;
   }
-  function setHeatGrid(g) { GRID = g; }
+  function setHeatGrid(g) { GRID = g; TILES = {}; }
+  function addHeatTile(t) { TILES[Math.round(t.r0 / grid().tile) + "_" + Math.round(t.c0 / grid().tile)] = t; }
+  // Tuiles fines (ligne_colonne) nécessaires pour interpoler au point donné.
+  function tilesFor(lon, lat) {
+    var g = grid();
+    if (!g || !g.tile) return [];
+    var fine = g.fineM;
+    var x = ((lon - g.lon0) * g.kmLon * 1000) / fine - 0.5, y = ((g.lat1 - lat) * g.kmLat * 1000) / fine - 0.5;
+    var out = [];
+    [Math.floor(y), Math.floor(y) + 1].forEach(function (r) {
+      [Math.floor(x), Math.floor(x) + 1].forEach(function (c) {
+        var k = Math.floor(r / g.tile) + "_" + Math.floor(c / g.tile);
+        if (r >= 0 && c >= 0 && out.indexOf(k) < 0 && (!g.tiles || g.tiles.indexOf(k) >= 0)) out.push(k);
+      });
+    });
+    return out;
+  }
+  function hasTiles(lon, lat) { return tilesFor(lon, lat).every(function (k) { return !!TILES[k]; }); }
 
-  // Valeur interpolée (bilinéaire) d'un champ de la grille au point donné.
-  function sample(g, field, lon, lat, scale) {
-    var x = ((lon - g.lon0) * g.kmLon * 1000) / g.cellM - 0.5;
-    var y = ((g.lat1 - lat) * g.kmLat * 1000) / g.cellM - 0.5;
-    var c0 = Math.max(0, Math.min(g.cols - 2, Math.floor(x))), r0 = Math.max(0, Math.min(g.rows - 2, Math.floor(y)));
-    var tx = Math.max(0, Math.min(1, x - c0)), ty = Math.max(0, Math.min(1, y - r0));
-    var a = g[field], i = r0 * g.cols + c0;
-    var top = a[i] * (1 - tx) + a[i + 1] * tx, bot = a[i + g.cols] * (1 - tx) + a[i + g.cols + 1] * tx;
-    return (top * (1 - ty) + bot * ty) * scale;
+  // Valeur interpolée (bilinéaire) d'un champ ; get(r, c) renvoie la maille ou undefined.
+  function bilinear(get, x, y) {
+    var c0 = Math.floor(x), r0 = Math.floor(y), tx = x - c0, ty = y - r0;
+    var a = get(r0, c0), b = get(r0, c0 + 1), c = get(r0 + 1, c0), d = get(r0 + 1, c0 + 1);
+    if (a == null || b == null || c == null || d == null) return null;
+    return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty;
+  }
+  function sampleFine(field, lon, lat) {
+    var g = grid(), fine = g.fineM, T = g.tile;
+    if (!T) return null;
+    var x = ((lon - g.lon0) * g.kmLon * 1000) / fine - 0.5, y = ((g.lat1 - lat) * g.kmLat * 1000) / fine - 0.5;
+    return bilinear(function (r, c) {
+      var t = TILES[Math.floor(r / T) + "_" + Math.floor(c / T)];
+      return t ? t[field][(r - t.r0) * t.cols + (c - t.c0)] : undefined;
+    }, x, y);
+  }
+  function sampleCoarse(lon, lat) {
+    var g = grid();
+    var x = ((lon - g.lon0) * g.kmLon * 1000) / g.cellM - 0.5, y = ((g.lat1 - lat) * g.kmLat * 1000) / g.cellM - 0.5;
+    x = Math.max(0, Math.min(g.cols - 1.001, x)); y = Math.max(0, Math.min(g.rows - 1.001, y));
+    return bilinear(function (r, c) { return g.delta[r * g.cols + c]; }, x, y);
   }
 
   // Écart nocturne du point (°C) par rapport à la station Montsouris, et ce qui l'explique.
-  function localHeat(lon, lat, arrs) {
+  // fine = false tant que la tuile de 100 m n'est pas chargée (valeur lue sur la carte d'ensemble de 400 m).
+  function localHeat(lon, lat, zones) {
     var g = grid();
-    var out = { arr: arrondissementAt(lon, lat, arrs), delta: 0, built: null, veg: null, height: null };
+    var out = { zone: zoneAt(lon, lat, zones), delta: 0, built: null, veg: null, height: null, fine: false };
     if (!g) return out;
-    out.delta = sample(g, "delta", lon, lat, 0.1);
-    out.built = sample(g, "built", lon, lat, 1);
-    out.veg = sample(g, "veg", lon, lat, 1);
-    out.height = sample(g, "height", lon, lat, 1);
+    var d = sampleFine("delta", lon, lat);
+    if (d != null) {
+      out.fine = true;
+      out.delta = d / 10;
+      out.built = sampleFine("built", lon, lat);
+      out.veg = sampleFine("veg", lon, lat);
+      out.height = sampleFine("height", lon, lat);
+    } else {
+      out.delta = sampleCoarse(lon, lat) / 10;
+    }
     return out;
   }
 
-  function inParis(lon, lat, arrs) {
-    if (lon < BBOX.minLon || lon > BBOX.maxLon || lat < BBOX.minLat || lat > BBOX.maxLat) return false;
-    return !arrs || !!arrondissementAt(lon, lat, arrs);
+  function inZone(lon, lat, zones) {
+    return !!zoneAt(lon, lat, zones);
   }
 
   // ---------------------------------------------------------------------------
@@ -327,7 +357,7 @@
     var points = 0, reasons = [];
     if (opts.precision === "address") { points += 3; reasons.push({ ok: true, text: "Adresse localisée précisément" }); }
     else if (opts.precision === "map") { points += 2; reasons.push({ ok: true, text: "Position placée sur la carte" }); }
-    else { points += 0; reasons.push({ ok: false, text: "Seul l'arrondissement est connu" }); }
+    else { points += 0; reasons.push({ ok: false, text: "Seule la commune ou l'arrondissement est connu" }); }
     var known = 6 - prm.unknowns;
     points += known * 0.5;
     reasons.push({ ok: prm.unknowns <= 1, text: known + (known > 1 ? " caractéristiques" : " caractéristique") + " du logement sur 6 " + (known > 1 ? "renseignées" : "renseignée") });
@@ -337,18 +367,24 @@
     }
     reasons.push({ ok: true, text: "10 étés de relevés réels à Paris-Montsouris" });
     reasons.push({ ok: true, text: "Bâti, végétation et eau du quartier mesurés par l'IGN (mailles de 100 m)" });
-    reasons.push({ ok: false, text: "Îlot de chaleur calé sur Landsat (surface, de jour), pas sur l'air mesuré la nuit" });
+    var fit = grid() && grid().stationFit;
+    if (fit) reasons.push({ ok: true, text: "Écart de nuit de la carte calé sur " + fit.stations.length + " stations Météo-France de Paris et de ses environs" });
+    else reasons.push({ ok: false, text: "Îlot de chaleur calé sur Landsat (surface, de jour), pas sur l'air mesuré la nuit" });
+    if (opts.outside) {
+      points -= 1;
+      reasons.push({ ok: false, text: "Hors de Paris : une seule station de référence (Montsouris), relief et maisons individuelles non pris en compte, carte vérifiée sur moins de stations" });
+    }
     reasons.push({ ok: false, text: "Modèle simplifié, non calibré sur des mesures dans ce logement" });
     var level = points >= 6.5 ? "bonne" : points >= 4.5 ? "moyenne" : "faible";
     return { level: level, label: level === "bonne" ? "Bonne" : level === "moyenne" ? "Moyenne" : "Faible", points: points, reasons: reasons };
   }
 
   // Analyse complète d'un logement.
-  function analyze(climate, location, profile, arrs) {
-    var heatInfo = localHeat(location.lon, location.lat, arrs);
+  function analyze(climate, location, profile, zones) {
+    var heatInfo = localHeat(location.lon, location.lat, zones);
     var heat = heatInfo.delta;
     var prm = params(profile);
-    var conf = confidence(location, prm);
+    var conf = confidence(Object.assign({ outside: !!heatInfo.zone && heatInfo.zone.dep !== "75" }, location), prm);
     var spread = conf.level === "bonne" ? 0.8 : conf.level === "moyenne" ? 1.2 : 1.6;
 
     var now = simulate(climate, heat, prm);
@@ -450,7 +486,7 @@
     return next;
   }
 
-  function advice(climate, location, profile, arrs, result) {
+  function advice(climate, location, profile, zones, result) {
     var p = result.params.profile;
     var heat = result.heat.delta;
     var list = [];
@@ -477,10 +513,11 @@
   }
 
   var api = {
-    MONTSOURIS: MONTSOURIS, BBOX: BBOX, SEINE: SEINE,
+    MONTSOURIS: MONTSOURIS, BBOX: BBOX,
     FACTORS: FACTORS, DEFAULT_PROFILE: DEFAULT_PROFILE, SCENARIOS_2050: SCENARIOS_2050,
     THRESHOLD: THRESHOLD, THRESHOLD_HARD: THRESHOLD_HARD, SCORE_FULL: SCORE_FULL, KM_LON: KM_LON, KM_LAT: KM_LAT,
-    arrondissementAt: arrondissementAt, localHeat: localHeat, setHeatGrid: setHeatGrid, inParis: inParis,
+    zoneAt: zoneAt, localHeat: localHeat, setHeatGrid: setHeatGrid, addHeatTile: addHeatTile, tilesFor: tilesFor,
+    hasTiles: hasTiles, inZone: inZone,
     params: params, simulate: simulate, scoreFrom: scoreFrom, verdict: verdict,
     analyze: analyze, advice: advice, confidence: confidence, hotEvening: hotEvening
   };

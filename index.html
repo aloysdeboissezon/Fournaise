@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fournaise : score de chaleur d'un logement à Paris (nuits étouffantes, 2050)</title>
-<meta name="description" content="Le score de chaleur d'un logement parisien avant de le louer : nuits étouffantes, projection 2050 et conseils concrets.">
+<title>Fournaise : score de chaleur d'un logement à Paris et en petite couronne (nuits étouffantes, 2050)</title>
+<meta name="description" content="Le score de chaleur d'un logement à Paris, dans les Hauts-de-Seine, la Seine-Saint-Denis ou le Val-de-Marne avant de le louer : nuits étouffantes, projection 2050 et conseils concrets.">
 <meta name="theme-color" content="#edf0f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d1116" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://aloysdeboissezon.github.io/Fournaise/">
@@ -30,7 +30,7 @@
 <link rel="preload" href="fonts/instrument-sans-046090.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/unbounded-06f2e4.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/fonts.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebApplication","name":"Fournaise","url":"https://aloysdeboissezon.github.io/Fournaise/","applicationCategory":"UtilitiesApplication","operatingSystem":"Tout navigateur","inLanguage":"fr","description":"Le score de chaleur d'un logement parisien avant de le louer : nuits étouffantes, projection 2050 et conseils concrets.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"areaServed":{"@type":"City","name":"Paris"}},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Pourquoi 26 °C dans la chambre ?","acceptedAnswer":{"@type":"Answer","text":"L'OMS recommande de garder la chambre sous 24 °C la nuit. Fournaise retient 26 °C comme seuil de nuit étouffante et 28 °C comme nuit très difficile : c'est un choix de modélisation, pas une valeur réglementaire."}},{"@type":"Question","name":"Mes réponses sont-elles envoyées quelque part ?","acceptedAnswer":{"@type":"Answer","text":"Non. Le calcul se fait entièrement dans ton navigateur. Seule la recherche d'adresse interroge la Base Adresse Nationale, un service public, avec le texte que tu tapes."}},{"@type":"Question","name":"Ce score remplace-t-il un diagnostic ?","acceptedAnswer":{"@type":"Answer","text":"Non. C'est une estimation pour comparer des logements et savoir quoi demander. Elle ne remplace ni le DPE, ni une étude thermique réglementaire."}}]}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebApplication","name":"Fournaise","url":"https://aloysdeboissezon.github.io/Fournaise/","applicationCategory":"UtilitiesApplication","operatingSystem":"Tout navigateur","inLanguage":"fr","description":"Le score de chaleur d'un logement à Paris et en petite couronne avant de le louer : nuits étouffantes, projection 2050 et conseils concrets.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"areaServed":[{"@type":"City","name":"Paris"},{"@type":"AdministrativeArea","name":"Hauts-de-Seine"},{"@type":"AdministrativeArea","name":"Seine-Saint-Denis"},{"@type":"AdministrativeArea","name":"Val-de-Marne"}]},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Pourquoi 26 °C dans la chambre ?","acceptedAnswer":{"@type":"Answer","text":"L'OMS recommande de garder la chambre sous 24 °C la nuit. Fournaise retient 26 °C comme seuil de nuit étouffante et 28 °C comme nuit très difficile : c'est un choix de modélisation, pas une valeur réglementaire."}},{"@type":"Question","name":"Mes réponses sont-elles envoyées quelque part ?","acceptedAnswer":{"@type":"Answer","text":"Non. Le calcul se fait entièrement dans ton navigateur. Seule la recherche d'adresse interroge la Base Adresse Nationale, un service public, avec le texte que tu tapes."}},{"@type":"Question","name":"Ce score remplace-t-il un diagnostic ?","acceptedAnswer":{"@type":"Answer","text":"Non. C'est une estimation pour comparer des logements et savoir quoi demander. Elle ne remplace ni le DPE, ni une étude thermique réglementaire."}}]}]}</script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -47,7 +47,7 @@
       <a href="#methode">Méthode</a>
       <a href="#faq">Questions</a>
     </nav>
-    <span class="city-pill">Paris · bêta</span>
+    <span class="city-pill" title="Paris et petite couronne, version bêta">Paris · 92 · 93 · 94</span>
     <button class="icon-btn" type="button" id="theme-btn" aria-label="Changer de thème clair ou sombre"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button>
   </div>
 </header>
@@ -57,14 +57,14 @@
     <div class="hero-text">
       <p class="eyebrow">Le score de chaleur d'un logement</p>
       <h1>Tu visites en novembre. <span class="hot">Tu dors en juillet.</span></h1>
-      <p class="lede">Fournaise estime combien de nuits étouffantes t'attendent dans un appart avant que tu signes. Le calcul part de dix étés de relevés réels à Paris et de ce que tu sais du logement : étage, fenêtres, orientation.</p>
+      <p class="lede">Fournaise estime combien de nuits étouffantes t'attendent dans un appart avant que tu signes. Le calcul part de dix étés de relevés réels, de ton quartier, à Paris ou en petite couronne, et de ce que tu sais du logement : étage, fenêtres, orientation.</p>
       <div class="hero-cta">
         <a class="btn hot big" href="#outil">Calculer mon score</a>
         <a class="btn ghost big" href="#methode">Voir la méthode</a>
       </div>
       <ul class="trust" aria-label="En bref">
         <li><strong>10 étés</strong> Météo-France</li>
-        <li><strong>20</strong> arrondissements</li>
+        <li><strong>142</strong> communes et arrondissements</li>
         <li><strong>Gratuit</strong> et sans compte</li>
       </ul>
     </div>
@@ -81,7 +81,7 @@
       <fieldset>
         <legend>Où est le logement ?</legend>
         <div class="addr">
-          <label class="q-label" for="addr-input">Adresse à Paris</label>
+          <label class="q-label" for="addr-input">Adresse à Paris ou en petite couronne</label>
           <div class="addr-row">
             <input id="addr-input" type="text" autocomplete="off" placeholder="Ex. 12 rue des Martyrs" enterkeyhint="search" spellcheck="false" aria-autocomplete="list" aria-controls="addr-suggest">
             <button class="btn" type="submit" id="addr-go"><span class="spinner" aria-hidden="true"></span><span class="btn-label">Localiser</span></button>
@@ -90,16 +90,17 @@
           <p class="note" id="addr-note" aria-live="polite">Tape une adresse, ou clique directement sur la carte.</p>
         </div>
         <div class="map-box">
-          <svg id="map" role="group" tabindex="0" aria-label="Carte de Paris : clique pour placer le logement, ou au clavier utilise les flèches" aria-describedby="map-help"></svg>
-          <p class="sr-only" id="map-help">Au clavier : les flèches déplacent le point d'environ 150 mètres, avec Maj environ 600 mètres. Tu peux aussi taper une adresse ou choisir un arrondissement dans la liste.</p>
+          <div class="map-views" role="group" aria-label="Zoom de la carte"><button type="button" data-view="zone" aria-pressed="true">Petite couronne</button><button type="button" data-view="paris" aria-pressed="false">Paris</button></div>
+          <svg id="map" role="group" tabindex="0" aria-label="Carte de Paris et de la petite couronne : clique pour placer le logement, ou au clavier utilise les flèches" aria-describedby="map-help"></svg>
+          <p class="sr-only" id="map-help">Au clavier : les flèches déplacent le point d'environ 150 mètres, avec Maj environ 600 mètres. Tu peux aussi taper une adresse ou choisir une commune dans la liste.</p>
           <div class="map-legend">
             <span class="lg-ramp"><span>Nuits plus fraîches</span><span class="ramp" aria-hidden="true"></span><span>plus chaudes</span></span>
-            <span class="grow"></span><span>Îlots de chaleur (végétation et eau, Landsat)</span>
+            <span class="grow"></span><span>Écart de nuit (bâti et végétation, calé sur 11 stations Météo-France)</span>
           </div>
         </div>
         <div class="loc-line">
           <span id="loc-text">Aucun emplacement choisi</span>
-          <select id="arr-select" aria-label="Ou choisis l'arrondissement"></select>
+          <select id="arr-select" aria-label="Ou choisis la commune ou l'arrondissement"></select>
         </div>
       </fieldset>
 
@@ -280,7 +281,7 @@
       <div class="card">
         <ol class="steps">
           <li><div><strong>Dix étés réels</strong><p>Températures minimales et maximales de chaque jour, de juin à septembre 2017-2026, à la station Météo-France de Paris-Montsouris.</p></div></li>
-          <li><div><strong>Ton quartier</strong><p>Un écart nocturne est ajouté selon la part de végétation et d'eau dans un rayon de quelques centaines de mètres, mesurées par l'IGN sur une grille de 100 m. Leurs poids sont ajustés sur les températures de surface de Landsat. L'écart est plus fort les nuits chaudes. Il reste de l'ordre de 1 à 2 °C : l'étage, la toiture et les protections solaires du logement pèsent environ trois fois plus dans le score que le quartier.</p></div></li>
+          <li><div><strong>Ton quartier</strong><p>Un écart nocturne est ajouté selon le volume bâti et la part de végétation dans un rayon d'environ 500 m, mesurés par l'IGN sur une grille de 100 m, de Paris à la petite couronne. Leurs poids sont ajustés sur les températures minimales mesurées par 11 stations Météo-France de Paris et de ses environs, les nuits chaudes. L'écart va d'environ +2,5 °C au cœur de Paris à −1 ou −2 °C dans les quartiers pavillonnaires et près des bois : l'étage, la toiture et les protections solaires du logement pèsent environ trois fois plus dans le score que le quartier.</p></div></li>
           <li><div><strong>L'inertie du bâtiment</strong><p>Le logement réagit à la moyenne des quatre derniers jours, plus lentement s'il est en pierre, plus vite sous un toit en zinc.</p>
             <div class="formula">Tlibre = 20 + a × (Tmoy4j − 20) + apports + s × soleil(Tx)</div></div></li>
           <li><div><strong>Le soleil et la ventilation</strong><p>Toit, orientation, vitrage et volets règlent les apports solaires. La nuit, l'air extérieur ramène la chambre vers la température de la rue, d'autant mieux que l'appartement est traversant.</p>
@@ -302,18 +303,19 @@
         <thead><tr><th>Donnée</th><th>Statut</th><th>Origine et réserves</th></tr></thead>
         <tbody>
           <tr><td>Températures min et max de chaque jour, juin à septembre 2017-2026</td><td><span class="badge b-mes">Mesuré</span></td><td>Station Météo-France Paris-Montsouris (75114001), lues sur <a href="https://www.keraunos.org/climatologie/climat-de-la-france-cartes-donnees-stations/station/75114001/2025/02" target="_blank" rel="noopener">Keraunos</a>, qui relaie les données Météo-France. Contrôle fait le 17 octobre 2026 contre les <a href="https://www.data.gouv.fr/datasets/donnees-climatologiques-de-base-quotidiennes" target="_blank" rel="noopener">données quotidiennes officielles de Météo-France</a> (data.gouv.fr, valeurs validées) : 1 120 jours sur 1 220 sont comparables, tous identiques au dixième de degré. Les 100 derniers jours (23 juin au 30 septembre 2026) ne sont pas encore dans le fichier officiel et restent ceux de Keraunos.</td></tr>
-          <tr><td>Écart de chaleur entre quartiers de Paris</td><td><span class="badge b-pub">Ordre de grandeur publié</span></td><td>La <a href="https://cdn.paris.fr/paris/2019/07/24/b73bf8906326eac58175729370d79a02.pdf" target="_blank" rel="noopener">Ville de Paris</a> cite jusqu'à 12 °C d'écart la nuit entre Paris et ses alentours en canicule, et des parcs 1 à 2 °C plus frais que leur voisinage. Notre carte reste volontairement plus prudente (centre environ 1,5 °C plus chaud que Montsouris).</td></tr>
-          <tr><td>Bâtiments, végétation et eau autour du logement (grille de 100 m)</td><td><span class="badge b-mes">Mesuré</span></td><td>BD TOPO de l'IGN, lue sur la <a href="https://data.geopf.fr/wfs/ows?SERVICE=WFS&amp;REQUEST=GetCapabilities" target="_blank" rel="noopener">Géoplateforme</a> le 17 octobre 2026 : 243 649 bâtiments (emprise et hauteur), 10 349 zones de végétation, 246 surfaces en eau. Les 197 147 arbres de la Ville de Paris (<a href="https://opendata.paris.fr/explore/dataset/les-arbres/" target="_blank" rel="noopener">open data</a>) ont été testés aussi.</td></tr>
-          <tr><td>Températures de surface en été (calage de la carte)</td><td><span class="badge b-mes">Mesuré</span></td><td>Landsat 8 et 9, bande thermique, 12 journées chaudes sans nuages entre 2019 et 2025 (2 juin 2019, 4 juillet 2019, 7 août 2020, 18 juin, 4 juillet et 29 août 2022, 5 et 13 juin 2023, 9 septembre 2023, 10 août 2024, 18 juin et 4 juillet 2025), via <a href="https://planetarycomputer.microsoft.com/dataset/landsat-c2-l2" target="_blank" rel="noopener">Microsoft Planetary Computer</a>. Le satellite passe vers 12 h 40 heure locale : il mesure la <em>surface</em> en milieu de journée, pas l'air de la nuit.</td></tr>
-          <tr><td>Carte des îlots de chaleur</td><td><span class="badge b-mes">Mesuré</span> + <span class="badge b-est">Estimé</span></td><td>Calculée une fois pour Paris (<code>scripts/build_heat.py</code>). Les poids sont ajustés sur Landsat (17 460 mailles de 100 m, R² 0,65, ajustement sur les mêmes mailles) : seules la végétation et l'eau gardent un poids ; le bâti, la hauteur des immeubles et les arbres n'améliorent pas l'ajustement une fois la végétation et l'eau connues. En revanche, passer de la surface de jour à l'air de nuit est un choix de Fournaise : calage à 0 °C sur Montsouris et +1,5 °C en moyenne au centre, plus fort les nuits chaudes.</td></tr>
-          <tr><td>DPE de l'immeuble : confort d'été, protections solaires, logements traversants, année de construction</td><td><span class="badge b-pub">Publié</span></td><td>854 971 DPE de logements parisiens établis depuis juillet 2021 (<a href="https://data.ademe.fr/datasets/meg-83tjwtg8dyz4vv7h1dqe" target="_blank" rel="noopener">ADEME, open data</a>, lus le 17 octobre 2026), regroupés pour 68 620 adresses (<code>data/dpe/</code>). Ce sont les DPE déclarés par les diagnostiqueurs, pas des mesures ; ils décrivent l'immeuble, pas forcément ton logement. Le confort d'été le plus fréquent préremplit le formulaire.</td></tr>
-          <tr><td>Année, murs, toiture, hauteur et niveaux de l'immeuble</td><td><span class="badge b-pub">Publié</span></td><td><a href="https://bdnb.io" target="_blank" rel="noopener">BDNB</a> (CSTB), archive open data du département 75, millésime 2026-02.b, rassemblée pour 152 187 adresses parisiennes (<code>data/bdnb/</code>). Ce sont des données croisées de sources publiques, avec des valeurs « indéterminées » écartées ; elles décrivent le groupe de bâtiments de l'adresse.</td></tr>
+          <tr><td>Écart de nuit entre quartiers, mesuré aux stations</td><td><span class="badge b-mes">Mesuré</span></td><td>Températures minimales de 11 stations Météo-France de Paris et de ses environs (Luxembourg, Lariboisière, Longchamp, Suresnes, Neuilly-sur-Marne, Joinville, Saint-Maur, Orly, Le Bourget, Villacoublay, Roissy), comparées à Montsouris les nuits où Montsouris reste au-dessus de 20 °C, étés 2017-2026 (<a href="https://www.data.gouv.fr/datasets/donnees-climatologiques-de-base-quotidiennes" target="_blank" rel="noopener">données quotidiennes officielles</a>, <code>data/stations-nuit.json</code>). De +1,6 °C à Lariboisière (10e) à −2,9 °C à Longchamp (bois de Boulogne). La tour Eiffel (capteur à 330 m) est écartée. La <a href="https://cdn.paris.fr/paris/2019/07/24/b73bf8906326eac58175729370d79a02.pdf" target="_blank" rel="noopener">Ville de Paris</a> cite des écarts plus forts en pleine canicule (jusqu'à 12 °C la nuit avec la campagne) ; ce sont ici des moyennes.</td></tr>
+          <tr><td>Bâtiments, végétation et eau autour du logement (grille de 100 m)</td><td><span class="badge b-mes">Mesuré</span></td><td>BD TOPO de l'IGN, lue sur la <a href="https://data.geopf.fr/wfs/ows?SERVICE=WFS&amp;REQUEST=GetCapabilities" target="_blank" rel="noopener">Géoplateforme</a> le 17 octobre 2026, dans un rectangle qui englobe Paris et la petite couronne : 1 530 347 bâtiments (emprise et hauteur), 42 425 zones de végétation, 2 619 surfaces en eau.</td></tr>
+          <tr><td>Carte des îlots de chaleur</td><td><span class="badge b-mes">Mesuré</span> + <span class="badge b-est">Estimé</span></td><td>Calculée une fois pour toute la zone (<code>scripts/build_heat.py</code>, 69 tuiles de 4 km chargées à l'adresse). Écart de nuit = 0,29 °C par mètre de volume bâti par m² de sol, −4,2 °C pour un quartier entièrement végétalisé, dans un rayon d'environ 500 m, nul à Montsouris. Ces deux poids sont ajustés sur les 11 stations : erreur moyenne de 0,64 °C, 0,73 °C quand chaque station est laissée de côté à tour de rôle, contre 1,51 °C sans carte. La plus grosse erreur est au jardin du Luxembourg (carte +0,9 °C, mesure −0,7 °C) : un parc de 23 ha au milieu de la ville reste plus frais que ce que voit un rayon de 500 m. L'effet plus fort les nuits très chaudes est un choix de Fournaise.</td></tr>
+          <tr><td>Températures de surface en été (contrôle de la carte)</td><td><span class="badge b-mes">Mesuré</span></td><td>Landsat 8 et 9, bande thermique, 11 journées chaudes sans nuages entre 2019 et 2025, via <a href="https://planetarycomputer.microsoft.com/dataset/landsat-c2-l2" target="_blank" rel="noopener">Microsoft Planetary Computer</a>. Corrélation de 0,77 avec la carte. Landsat ne sert plus au calage : il voit la <em>surface</em> vers 12 h 40, et les pelouses d'aéroport ou de champ de courses, brûlantes à midi, sont parmi les endroits les plus frais la nuit.</td></tr>
+          <tr><td>DPE de l'immeuble : confort d'été, protections solaires, logements traversants, année de construction</td><td><span class="badge b-pub">Publié</span></td><td>DPE de logements établis depuis juillet 2021 (<a href="https://data.ademe.fr/datasets/meg-83tjwtg8dyz4vv7h1dqe" target="_blank" rel="noopener">ADEME, open data</a>, lus le 17 octobre 2026) : 854 971 à Paris, regroupés pour 68 620 adresses, et 1 317 871 en petite couronne, regroupés pour 167 162 adresses (<code>data/dpe/</code>, un fichier par commune). Ce sont les DPE déclarés par les diagnostiqueurs, pas des mesures ; ils décrivent l'immeuble, pas forcément ton logement. Le confort d'été le plus fréquent préremplit le formulaire.</td></tr>
+          <tr><td>Année, murs, toiture, hauteur et niveaux de l'immeuble</td><td><span class="badge b-pub">Publié</span></td><td><a href="https://bdnb.io" target="_blank" rel="noopener">BDNB</a> (CSTB), archives open data des départements 75, 92, 93 et 94, millésime 2026-02.b, rassemblées pour 152 187 adresses à Paris et 602 837 en petite couronne (<code>data/bdnb/</code>). Ce sont des données croisées de sources publiques, avec des valeurs « indéterminées » écartées ; elles décrivent le groupe de bâtiments de l'adresse.</td></tr>
+          <tr><td>Fiabilité en petite couronne</td><td><span class="badge b-est">Estimé</span></td><td>Moins bonne qu'à Paris, et le niveau de confiance le dit : une seule série de référence (Montsouris), 8 stations de calage hors de Paris, dont 3 juste au-delà de la zone, pour 122 communes, relief ignoré (les plateaux de Meudon ou de Romainville et les vallées de la Seine et de la Marne n'ont pas les mêmes nuits), modèle du logement pensé pour les appartements (une maison individuelle n'a ni étage ni voisins au-dessus), et des DPE plus rares dans les quartiers pavillonnaires.</td></tr>
           <tr><td>Réchauffement en 2050</td><td><span class="badge b-pub">Publié</span> + <span class="badge b-est">Estimé</span></td><td>TRACC : +2 °C en 2030, +2,7 °C en 2050, +4 °C en 2100 (<a href="https://www.ecologie.gouv.fr/sites/default/files/documents/27012026_DP_TRACC.pdf" target="_blank" rel="noopener">ministère</a>). Le décalage appliqué aux étés (+1,2 °C la nuit, +1,4 °C le jour par rapport à 2017-2026) est une conversion de Fournaise ; le dossier ne donne pas de chiffre d'été.</td></tr>
           <tr><td>Seuil de nuit étouffante : 26 °C, très difficile : 28 °C</td><td><span class="badge b-cho">Choix</span></td><td>L'OMS recommande de rester sous 24 °C la nuit (rapporté par <a href="https://fr.euronews.com/sante/2026/08/19/les-nuits-chaudes-perturbent-votre-sommeil-et-nuisent-a-votre-sante-comment-reagir" target="_blank" rel="noopener">Euronews</a>). Les seuils de Fournaise sont un parti pris, modifiable dans <code>js/model.js</code>.</td></tr>
           <tr><td>Effet du toit, du soleil, du vitrage, des volets, de la ventilation</td><td><span class="badge b-est">Estimé</span></td><td>Coefficients physiquement plausibles mais non calés sur des mesures dans des logements. La logique suit le confort d'été du DPE : sans protection solaire sur les fenêtres sud, est ou ouest, ou au dernier étage sous une toiture non isolée, le logement est classé « insuffisant » (<a href="https://www.connaissancedesenergies.org/afp/logements-isoles-pour-lhiver-mais-etouffants-lete-les-limites-du-dpe-260712" target="_blank" rel="noopener">AFP</a>).</td></tr>
           <tr><td>Effet de la climatisation</td><td><span class="badge b-cho">Choix</span></td><td>Avec la climatisation, le nombre de nuits étouffantes est multiplié par 0,15. C'est un facteur arbitraire de Fournaise, sans simulation ni mesure.</td></tr>
-          <tr><td>Contours des arrondissements</td><td><span class="badge b-mes">Publié</span></td><td>Ville de Paris, open data, via le projet click_that_hood.</td></tr>
-          <tr><td>Tracé de la Seine sur la carte</td><td><span class="badge b-est">Estimé</span></td><td>Simple repère visuel. Dans le calcul, l'eau vient de la BD TOPO.</td></tr>
+          <tr><td>Contours des arrondissements et des communes</td><td><span class="badge b-mes">Publié</span></td><td>IGN, ADMIN EXPRESS COG CARTO (Géoplateforme), simplifiés à environ 30 m pour la carte.</td></tr>
+          <tr><td>Seine et Marne sur la carte</td><td><span class="badge b-mes">Mesuré</span></td><td>Surfaces en eau de plus de 2 ha de la BD TOPO, simplifiées à environ 15 m.</td></tr>
         </tbody>
       </table></div>
     </div>
@@ -323,9 +325,10 @@
         <ul class="sources" style="margin-top:10px">
           <li>Relevés quotidiens de Paris-Montsouris (Météo-France, station 75114001), lus sur <a href="https://www.keraunos.org/climatologie/climat-de-la-france-cartes-donnees-stations/station/75114001/2025/02" target="_blank" rel="noopener">Keraunos</a>, normales 1991-2020 de la <a href="https://object.files.data.gouv.fr/meteofrance/data/synchro_ftp/REF_STATION/FICHECLIM_75114001.pdf" target="_blank" rel="noopener">fiche climatologique</a>.</li>
           <li>Trajectoire de réchauffement de référence (TRACC) : <a href="https://www.ecologie.gouv.fr/sites/default/files/documents/27012026_DP_TRACC.pdf" target="_blank" rel="noopener">dossier de presse du ministère de la Transition écologique</a>.</li>
-          <li>Limites des arrondissements : Ville de Paris (open data).</li>
+          <li>Limites des arrondissements et des communes : IGN, ADMIN EXPRESS.</li>
+          <li>Températures minimales de 11 stations de la région : Météo-France (données quotidiennes, data.gouv.fr).</li>
           <li>Géocodage : Base Adresse Nationale, service de la Géoplateforme (IGN).</li>
-          <li>Bâtiments, végétation et eau : BD TOPO de l'IGN ; températures de surface : Landsat 8 et 9 (USGS) ; grille de chaleur de 100 m calculée pour Paris.</li>
+          <li>Bâtiments, végétation et eau : BD TOPO de l'IGN ; températures de surface : Landsat 8 et 9 (USGS) ; grille de chaleur de 100 m calculée pour Paris et la petite couronne.</li>
           <li>DPE des logements existants depuis 2021 : ADEME (open data), regroupés par adresse.</li>
           <li>Caractéristiques de l'immeuble : BDNB (CSTB), millésime 2026-02.b.</li>
         </ul>
@@ -333,12 +336,13 @@
       <div class="card">
         <h3>Limites connues</h3>
         <ul class="limits" style="margin-top:10px">
-          <li>La carte de chaleur se lit à l'échelle de 100 m à quelques centaines de mètres, et elle est calée sur la surface de jour, pas sur l'air de nuit. Une cour arborée ou une rue très minérale peuvent encore changer la donne de 1 à 2 °C.</li>
+          <li>La carte de chaleur se lit à l'échelle de quelques centaines de mètres, calée sur 11 stations seulement. Un parc, une cour arborée ou une rue très minérale peuvent encore changer la donne de 1 à 2 °C.</li>
+          <li>En petite couronne, l'estimation est moins fiable qu'à Paris : relief ignoré, moins de stations, modèle pensé pour les appartements. Pour une maison, le score est une indication.</li>
           <li>Les DPE décrivent l'immeuble et sont déclaratifs : ton logement peut différer, d'où la possibilité de corriger les réponses préremplies.</li>
           <li>Le modèle n'est pas encore calé sur des mesures de température à l'intérieur de vrais logements.</li>
           <li>Les fourchettes affichées sont des plages de sensibilité (le modèle décalé de quelques dixièmes de degré), pas des intervalles statistiques : plus tu renseignes de détails, plus elles se resserrent. Les nombres de nuits sont arrondis à 5 au-dessus de 20.</li>
           <li>Les chiffres sont des moyennes sur 2017-2026, dix étés dont le chaud 2026. La climatisation est comptée comme un simple facteur (×0,15 sur les nuits étouffantes), sans simulation.</li>
-          <li>Prochaines étapes : mesures de température de l'air la nuit (stations de la Ville) pour caler l'amplitude de la carte, puis Lyon, Marseille et Toulouse.</li>
+          <li>Prochaines étapes : capteurs de la Ville de Paris et relief pour affiner la carte, une question « maison ou appartement », puis Lyon, Marseille et Toulouse.</li>
         </ul>
       </div>
     </div>
@@ -352,8 +356,8 @@
       <details><summary>Mes réponses sont-elles envoyées quelque part ?</summary><p>Non. Le calcul se fait entièrement dans ton navigateur. Seule la recherche d'adresse interroge la Base Adresse Nationale, un service public, avec le texte que tu tapes.</p></details>
       <details><summary>Je ne connais pas les réponses, que faire ?</summary><p>Choisis « Je ne sais pas ». Le score est quand même calculé avec des valeurs moyennes, mais le niveau de confiance baisse et la plage de sensibilité s'élargit. La section « À demander pendant la visite » liste les questions qui comptent le plus.</p></details>
       <details><summary>Que veut dire 10/10 ?</summary><p>Le score atteint 10 à 120 nuits pondérées par été (une nuit à 28 °C ou plus compte une fois et demie), soit environ 80 nuits étouffantes sur 122. C'est un cas extrême : une chambre de bonne plein ouest sous les toits tourne autour de 8 aujourd'hui, et un appartement haussmannien à l'étage, au nord et traversant, autour de 3.</p></details>
-      <details><summary>Pourquoi le score change peu d'une adresse à l'autre ?</summary><p>Parce que le logement pèse plus que le quartier : étage, toiture, orientation et protections solaires jouent environ trois fois plus que l'écart de 1 à 2 °C entre quartiers de Paris. Deux appartements voisins peuvent avoir des scores très différents, et le même appartement déplacé à l'autre bout de Paris très peu.</p></details>
-      <details><summary>Et en dehors de Paris ?</summary><p>Pas encore. Chaque ville demande sa station météo et sa carte de chaleur. Lyon, Marseille et Toulouse sont les prochaines.</p></details>
+      <details><summary>Pourquoi le score change peu d'une adresse à l'autre ?</summary><p>Parce que le logement pèse plus que le quartier : étage, toiture, orientation et protections solaires jouent environ trois fois plus que l'écart de 1 à 3 °C entre quartiers. Deux appartements voisins peuvent avoir des scores très différents, et le même appartement déplacé de Paris à la banlieue nettement moins.</p></details>
+      <details><summary>Et en dehors de Paris ?</summary><p>Fournaise couvre Paris et la petite couronne : les 122 communes des Hauts-de-Seine, de la Seine-Saint-Denis et du Val-de-Marne. L'estimation y est un peu moins fiable qu'à Paris (une seule station de référence, relief ignoré, modèle pensé pour les appartements), et le niveau de confiance en tient compte. Ailleurs, pas encore : Lyon, Marseille et Toulouse sont les prochaines villes.</p></details>
       <details><summary>Ce score remplace-t-il un diagnostic ?</summary><p>Non. C'est une estimation pour comparer des logements et savoir quoi demander. Elle ne remplace ni le DPE, ni une étude thermique réglementaire.</p></details>
     </div>
   </section>
@@ -361,11 +365,12 @@
 
 <footer>
   <div class="wrap foot">
-    <div class="foot-brand"><span class="brand"><span class="brand-mark" aria-hidden="true"></span>Fournaise</span><p>Le score de chaleur de ton futur logement. Version 1, Paris.</p></div>
+    <div class="foot-brand"><span class="brand"><span class="brand-mark" aria-hidden="true"></span>Fournaise</span><p>Le score de chaleur de ton futur logement. Paris et petite couronne.</p></div>
     <nav class="foot-nav" aria-label="Pied de page"><a href="#outil">Le score</a><a href="#conseils">Conseils</a><a href="#methode">Méthode</a><a href="#faq">Questions</a><a href="https://github.com/aloysdeboissezon/Fournaise" target="_blank" rel="noopener">Code source</a></nav>
     <nav class="foot-nav foot-arr" aria-label="Chaleur par arrondissement"><span>Par arrondissement :</span><a href="paris-1er.html">1er</a> <a href="paris-2e.html">2e</a> <a href="paris-3e.html">3e</a> <a href="paris-4e.html">4e</a> <a href="paris-5e.html">5e</a> <a href="paris-6e.html">6e</a> <a href="paris-7e.html">7e</a> <a href="paris-8e.html">8e</a> <a href="paris-9e.html">9e</a> <a href="paris-10e.html">10e</a> <a href="paris-11e.html">11e</a> <a href="paris-12e.html">12e</a> <a href="paris-13e.html">13e</a> <a href="paris-14e.html">14e</a> <a href="paris-15e.html">15e</a> <a href="paris-16e.html">16e</a> <a href="paris-17e.html">17e</a> <a href="paris-18e.html">18e</a> <a href="paris-19e.html">19e</a> <a href="paris-20e.html">20e</a></nav>
+    <nav class="foot-nav foot-arr" aria-label="Chaleur en petite couronne"><span>En petite couronne :</span><a href="petite-couronne.html">les 122 communes</a> <a href="boulogne-billancourt-92.html">Boulogne-Billancourt</a> <a href="nanterre-92.html">Nanterre</a> <a href="saint-denis-93.html">Saint-Denis</a> <a href="montreuil-93.html">Montreuil</a> <a href="creteil-94.html">Créteil</a> <a href="vitry-sur-seine-94.html">Vitry-sur-Seine</a></nav>
     <nav class="foot-nav foot-legal" aria-label="Informations légales"><a href="mentions-legales.html">Mentions légales</a><a href="confidentialite.html">Confidentialité</a><a href="donnees-licences.html">Données et licences</a><a href="https://github.com/aloysdeboissezon/Fournaise/issues/new" target="_blank" rel="noopener">Signaler une erreur</a></nav>
-    <p class="foot-note">Une estimation pour choisir son logement, pas un diagnostic thermique. Données : Météo-France (station Paris-Montsouris), IGN, ADEME, BDNB, Ville de Paris.</p>
+    <p class="foot-note">Une estimation pour choisir son logement, pas un diagnostic thermique. Données : Météo-France (Paris-Montsouris et 11 stations de la région), IGN, ADEME, BDNB.</p>
   </div>
 </footer>
 <!-- BODY:END -->

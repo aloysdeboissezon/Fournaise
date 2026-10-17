@@ -4,7 +4,11 @@
 
   var D = window.FOURNAISE_DATA;
   var M = window.FournaiseModel;
-  var ARRS = D.arrondissements;
+  var ZONES = D.zones;
+  var ZONE_BY_CODE = {};
+  ZONES.forEach(function (z) { ZONE_BY_CODE[z.code] = z; });
+  // Communes fusionnées dont la BAN garde parfois l'ancien code (Pierrefitte-sur-Seine dans Saint-Denis depuis 2025).
+  var MERGED = { "93059": "93066" };
   var $ = function (id) { return document.getElementById(id); };
   var track = function (name) { if (window.FournaiseTrack) window.FournaiseTrack(name); };
 
@@ -172,9 +176,9 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Carte de Paris
+  // Carte de Paris et de la petite couronne
   // ---------------------------------------------------------------------------
-  var MAPB = { minLon: 2.221, maxLon: 2.473, minLat: 48.813, maxLat: 48.905 };
+  var MAPB = { minLon: 2.14, maxLon: 2.62, minLat: 48.684, maxLat: 49.016 };
   var MAP_W = 600;
   var MAP_K = MAP_W / ((MAPB.maxLon - MAPB.minLon) * M.KM_LON);
   var MAP_H = Math.round((MAPB.maxLat - MAPB.minLat) * M.KM_LAT * MAP_K);
@@ -196,15 +200,21 @@
     a *= 0.5;
     return [cx / (6 * a), cy / (6 * a)];
   }
-  function mainRing(arr) {
-    return arr.rings.reduce(function (best, r) { return r.length > best.length ? r : best; }, arr.rings[0]);
+  function mainRing(z) {
+    return z.rings.reduce(function (best, r) { return r.length > best.length ? r : best; }, z.rings[0]);
   }
-  // Points d'étiquette ajustés à la main là où le centroïde tombe mal.
-  var LABEL_NUDGE = { 16: [2.268, 48.858], 12: [2.398, 48.838] };
+  // Points de centre ajustés à la main là où le centroïde tombe dans un bois.
+  var CENTER_NUDGE = { "75116": [2.268, 48.858], "75112": [2.398, 48.838] };
+  function zoneCenter(z) { return CENTER_NUDGE[z.code] || ringCentroid(mainRing(z)); }
+  var OUTSIDE = "Ce point est hors de la zone couverte. Fournaise couvre Paris et la petite couronne (Hauts-de-Seine, Seine-Saint-Denis, Val-de-Marne) pour l'instant.";
   var NS = "http://www.w3.org/2000/svg";
+  // Vues de la carte : toute la zone, ou Paris en grand (plus lisible sur téléphone).
+  var VIEWS = { zone: [MAPB.minLon, MAPB.maxLon, MAPB.minLat, MAPB.maxLat], paris: [2.215, 2.475, 48.812, 48.906] };
+  var mapView = "zone";
 
+  // Image de la carte de chaleur (carte d'ensemble de 400 m), découpée sur la zone par le SVG.
   function heatRaster() {
-    var RW = 210, RH = Math.round((RW * MAP_H) / MAP_W);
+    var RW = 300, RH = Math.round((RW * MAP_H) / MAP_W);
     var c = document.createElement("canvas");
     c.width = RW; c.height = RH;
     var ctx = c.getContext("2d");
@@ -212,41 +222,66 @@
     for (var y = 0; y < RH; y++) {
       for (var x = 0; x < RW; x++) {
         var ll = unproject(((x + 0.5) / RW) * MAP_W, ((y + 0.5) / RH) * MAP_H);
-        if (!M.inParis(ll[0], ll[1], ARRS)) continue;
-        var col = ramp(MAP_STOPS, M.localHeat(ll[0], ll[1], ARRS).delta);
+        var col = ramp(MAP_STOPS, M.localHeat(ll[0], ll[1]).delta);
         var o = (y * RW + x) * 4;
-        img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 200;
+        img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 210;
       }
     }
     ctx.putImageData(img, 0, 0);
     return c.toDataURL();
   }
 
+  // Position (lon, lat) d'un événement souris sur la carte, quelle que soit la vue.
+  function eventLonLat(svg, ev) {
+    var pt = svg.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    var p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return unproject(p.x, p.y);
+  }
+
+  function setMapView(v) {
+    mapView = v;
+    var b = VIEWS[v], a = project(b[0], b[3]), z = project(b[1], b[2]);
+    $("map").setAttribute("viewBox", a[0].toFixed(1) + " " + a[1].toFixed(1) + " " + (z[0] - a[0]).toFixed(1) + " " + (z[1] - a[1]).toFixed(1));
+    $("map").classList.toggle("zoomed", v === "paris");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (btn) { btn.setAttribute("aria-pressed", btn.dataset.view === v ? "true" : "false"); });
+    placePin();
+  }
+
   function renderMap() {
     var svg = $("map");
-    svg.setAttribute("viewBox", "0 0 " + MAP_W + " " + MAP_H);
-    var allPaths = ARRS.map(function (a) { return a.rings.map(ringPath).join(""); }).join("");
-    var labels = ARRS.map(function (a) {
-      var c = LABEL_NUDGE[a.n] || ringCentroid(mainRing(a));
-      var p = project(c[0], c[1]);
-      return '<text class="arr-label" x="' + p[0].toFixed(1) + '" y="' + (p[1] + 4).toFixed(1) + '" text-anchor="middle">' + a.n + "</text>";
+    var allPaths = ZONES.map(function (z) { return z.rings.map(ringPath).join(""); }).join("");
+    var depLabels = [["Paris", 2.345, 48.869], ["92", 2.19, 48.875], ["93", 2.5, 48.945], ["94", 2.49, 48.765]].map(function (l) {
+      var p = project(l[1], l[2]);
+      return '<text class="dep-label" x="' + p[0].toFixed(1) + '" y="' + p[1].toFixed(1) + '" text-anchor="middle">' + l[0] + "</text>";
     }).join("");
-    var seine = M.SEINE.map(function (c, i) { var p = project(c[0], c[1]); return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join("");
+    var arrLabels = ZONES.filter(function (z) { return z.dep === "75"; }).map(function (z) {
+      var p = project.apply(null, zoneCenter(z));
+      return '<text class="arr-label" x="' + p[0].toFixed(1) + '" y="' + (p[1] + 3).toFixed(1) + '" text-anchor="middle">' + z.n + "</text>";
+    }).join("");
+    // Seine, Marne et plans d'eau (BD TOPO), codés en entiers de 1e-4 degré : premier point puis écarts.
+    var water = (D.heat.water || []).map(function (f) {
+      var x = 0, y = 0, ring = [];
+      for (var i = 0; i < f.length; i += 2) { x += f[i]; y += f[i + 1]; ring.push([x / 1e4, y / 1e4]); }
+      return ringPath(ring);
+    }).join("");
     svg.innerHTML =
-      '<defs><clipPath id="paris-clip"><path d="' + allPaths + '"/></clipPath></defs>' +
-      '<image id="map-heat" x="0" y="0" width="' + MAP_W + '" height="' + MAP_H + '" preserveAspectRatio="none" clip-path="url(#paris-clip)" href="' + heatRaster() + '"/>' +
-      '<path d="' + seine + '" fill="none" stroke="var(--seine)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" clip-path="url(#paris-clip)"/>' +
-      ARRS.map(function (a) { return '<path d="' + a.rings.map(ringPath).join("") + '" fill="none" stroke="var(--map-line)" stroke-width="0.9"/>'; }).join("") +
-      labels +
+      '<defs><clipPath id="zone-clip"><path d="' + allPaths + '"/></clipPath></defs>' +
+      '<image id="map-heat" x="0" y="0" width="' + MAP_W + '" height="' + MAP_H + '" preserveAspectRatio="none" clip-path="url(#zone-clip)" href="' + heatRaster() + '"/>' +
+      '<path class="water" d="' + water + '" clip-path="url(#zone-clip)"/>' +
+      ZONES.map(function (z) { return '<path class="' + (z.dep === "75" ? "z-arr" : "z-com") + '" d="' + z.rings.map(ringPath).join("") + '"/>'; }).join("") +
+      '<g class="arr-labels">' + arrLabels + "</g>" + depLabels +
       '<g id="map-pin" visibility="hidden"><circle class="pin-halo" r="15"/><circle class="pin-dot" r="6"/></g>';
+    setMapView(mapView);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (btn) {
+      btn.addEventListener("click", function () { setMapView(btn.dataset.view); });
+    });
     svg.addEventListener("click", function (ev) {
-      var rect = svg.getBoundingClientRect();
-      var x = ((ev.clientX - rect.left) / rect.width) * MAP_W, y = ((ev.clientY - rect.top) / rect.height) * MAP_H;
-      var ll = unproject(x, y);
-      var arr = M.arrondissementAt(ll[0], ll[1], ARRS);
-      if (!arr) { note("Ce point est hors de Paris. Fournaise ne couvre que Paris pour l'instant.", true); return; }
+      var ll = eventLonLat(svg, ev);
+      var z = M.zoneAt(ll[0], ll[1], ZONES);
+      if (!z) { note(OUTSIDE, true); return; }
       markEdited();
-      setLocation({ lon: ll[0], lat: ll[1], precision: "map", label: "Point placé sur la carte, Paris " + arrName(arr.n) });
+      setLocation({ lon: ll[0], lat: ll[1], precision: "map", label: "Point placé sur la carte, " + z.name });
       note("Position enregistrée. Tu peux la déplacer en cliquant ailleurs.");
     });
   }
@@ -260,30 +295,43 @@
     var pin = $("map-pin");
     if (!pin || !state.location) return;
     var p = project(state.location.lon, state.location.lat);
-    pin.setAttribute("transform", "translate(" + p[0].toFixed(1) + " " + p[1].toFixed(1) + ")");
+    var k = mapView === "paris" ? 0.45 : 1;  // le repère garde la même taille à l'écran quand on zoome
+    pin.setAttribute("transform", "translate(" + p[0].toFixed(1) + " " + p[1].toFixed(1) + ") scale(" + k + ")");
     pin.setAttribute("visibility", "visible");
   }
 
   function arrName(n) { return n === 1 ? "1er" : n + "e"; }
+  // « dans le 9e arrondissement », « à Montreuil », « au Kremlin-Bicêtre », « aux Lilas »
+  function inZoneText(z) {
+    if (z.dep === "75") return "dans le " + arrName(z.n) + " arrondissement";
+    if (/^Le /.test(z.name)) return "au " + z.name.slice(3);
+    if (/^Les /.test(z.name)) return "aux " + z.name.slice(4);
+    return "à " + z.name;
+  }
+  var collator = typeof Intl !== "undefined" && Intl.Collator ? new Intl.Collator("fr") : null;
 
-  function renderArrSelect() {
+  function renderZoneSelect() {
     var sel = $("arr-select");
-    sel.innerHTML = '<option value="">Ou choisis l\'arrondissement</option>' + ARRS.map(function (a) {
-      return '<option value="' + a.n + '">Paris ' + arrName(a.n) + " · " + escapeHtml(a.name) + "</option>";
+    var groups = Object.keys(D.departements).map(function (dep) {
+      var list = ZONES.filter(function (z) { return z.dep === dep; });
+      if (dep !== "75" && collator) list.sort(function (a, b) { return collator.compare(a.name, b.name); });
+      return '<optgroup label="' + escapeHtml(D.departements[dep] + (dep === "75" ? "" : " (" + dep + ")")) + '">' + list.map(function (z) {
+        return '<option value="' + z.code + '">' + escapeHtml(z.name) + "</option>";
+      }).join("") + "</optgroup>";
     }).join("");
+    sel.innerHTML = '<option value="">Ou choisis la commune ou l\'arrondissement</option>' + groups;
     sel.addEventListener("change", function () {
       if (!sel.value) return;
       markEdited();
-      setArrondissement(parseInt(sel.value, 10));
+      setZone(ZONE_BY_CODE[sel.value]);
       sel.value = "";
     });
   }
 
-  function setArrondissement(n) {
-    var arr = ARRS.filter(function (a) { return a.n === n; })[0];
-    var c = LABEL_NUDGE[n] || ringCentroid(mainRing(arr));
-    setLocation({ lon: c[0], lat: c[1], precision: "arr", label: "Centre du " + arrName(n) + " arrondissement" });
-    note("Position approximative au centre de l'arrondissement. Clique sur la carte pour la préciser.");
+  function setZone(z) {
+    var c = zoneCenter(z);
+    setLocation({ lon: c[0], lat: c[1], precision: "arr", label: z.dep === "75" ? "Centre du " + arrName(z.n) + " arrondissement" : "Centre de " + z.name });
+    note("Position approximative au centre " + (z.dep === "75" ? "de l'arrondissement" : "de la commune") + ". Clique sur la carte pour la préciser.");
   }
 
   function setLocation(loc) {
@@ -292,6 +340,22 @@
     clearPrefill();
     update();
     if (loc.precision !== "arr" && !loc.approx) lookupBuilding(loc);
+  }
+
+  // Tuiles fines de la carte de chaleur (data/heat/, 100 m) : chargées à la demande, puis le score est recalculé.
+  var tileCache = {};
+  function loadTile(k) {
+    if (!tileCache[k]) {
+      tileCache[k] = fetchJson("data/heat/" + k + ".json", 8000).then(function (t) { M.addHeatTile(t); return t; },
+        function (e) { setTimeout(function () { delete tileCache[k]; }, 20000); throw e; });
+    }
+    return tileCache[k];
+  }
+  function ensureTiles(loc) {
+    if (M.hasTiles(loc.lon, loc.lat)) return;
+    Promise.all(M.tilesFor(loc.lon, loc.lat).map(loadTile)).then(function () {
+      if (state.location === loc) update();
+    }, function () {});
   }
 
   // ---------------------------------------------------------------------------
@@ -309,11 +373,18 @@
     return dpeCache[code];
   }
 
+  // Clé d'une adresse dans les fichiers par commune : identifiant BAN sans le code commune, ou complet
+  // quand ce code n'est pas celui du fichier (commune fusionnée).
+  function banKey(banId, code) {
+    banId = banId.toLowerCase();
+    return banId.slice(0, 5) === code ? banId.slice(6) : banId;
+  }
+
   // Adresse exacte (identifiant BAN) sinon adresse avec DPE la plus proche, à 30 m au plus.
   function findDpe(file, loc) {
     var rows = file.rows, best = null, bestD = 0.03;
-    if (loc.banId && loc.banId.slice(0, 5) === file.commune) {
-      var key = loc.banId.slice(6);
+    if (loc.banId) {
+      var key = banKey(loc.banId, file.commune);
       for (var i = 0; i < rows.length; i++) if (rows[i][0] === key) return { row: rows[i], exact: true, km: 0 };
     }
     for (var j = 0; j < rows.length; j++) {
@@ -335,12 +406,11 @@
 
   // BDNB (CSTB) : caractéristiques de l'immeuble par adresse, précalculées (data/bdnb/, scripts/build_bdnb.py).
   var bdnbCache = {};
-  function loadBdnb(banId) {
-    var code = banId.slice(0, 5);
+  function loadBdnb(banId, code) {
     if (!bdnbCache[code]) {
       bdnbCache[code] = fetchJson("data/bdnb/" + code + ".json", 8000).catch(function (e) { delete bdnbCache[code]; throw e; });
     }
-    var key = banId.slice(6).toLowerCase();
+    var key = banKey(banId, code);
     return bdnbCache[code].then(function (file) {
       for (var i = 0; i < file.rows.length; i++) {
         var r = file.rows[i];
@@ -356,9 +426,12 @@
   }
 
   function lookupBuilding(loc) {
-    var arr = M.arrondissementAt(loc.lon, loc.lat, ARRS);
-    if (!arr) return;
-    var code = String(75100 + arr.n);
+    // Fichier de la commune : celle de l'identifiant BAN quand il est dans la zone, sinon celle qui contient le point.
+    var fromBan = loc.banId ? loc.banId.slice(0, 5) : "";
+    fromBan = MERGED[fromBan] || fromBan;
+    var z = ZONE_BY_CODE[fromBan] || M.zoneAt(loc.lon, loc.lat, ZONES);
+    if (!z) return;
+    var code = z.code;
     var info = { dpe: null, bdnb: null, dpeDone: false, bdnbDone: !loc.banId, failed: false };
     state.building = info;
     var done = function () { if (state.location === loc) { applyBuilding(); update(); } };
@@ -367,7 +440,7 @@
       if (hit) info.dpe = Object.assign(dpeSummary(hit.row), { exact: hit.exact, m: Math.round(hit.km * 1000) });
     }, function () { info.failed = true; }).then(function () { info.dpeDone = true; done(); });
     if (loc.banId) {
-      loadBdnb(loc.banId).then(function (b) { info.bdnb = b; }, function () {}).then(function () { info.bdnbDone = true; done(); });
+      loadBdnb(loc.banId, code).then(function (b) { info.bdnb = b; }, function () {}).then(function () { info.bdnbDone = true; done(); });
     }
   }
 
@@ -443,8 +516,8 @@
   // Recherche d'adresse (Base Adresse Nationale)
   // ---------------------------------------------------------------------------
   var GEOCODERS = [
-    function (q) { return "https://data.geopf.fr/geocodage/search?q=" + encodeURIComponent(q) + "&limit=6&lat=48.8566&lon=2.3522"; },
-    function (q) { return "https://api-adresse.data.gouv.fr/search/?q=" + encodeURIComponent(q) + "&limit=6&lat=48.8566&lon=2.3522"; }
+    function (q) { return "https://data.geopf.fr/geocodage/search?q=" + encodeURIComponent(q) + "&limit=10&lat=48.8566&lon=2.3522"; },
+    function (q) { return "https://api-adresse.data.gouv.fr/search/?q=" + encodeURIComponent(q) + "&limit=10&lat=48.8566&lon=2.3522"; }
   ];
 
   function fetchJson(url, ms) {
@@ -475,16 +548,24 @@
     return next();
   }
 
-  function parisOnly(results) {
-    return results.filter(function (r) { return M.inParis(r.lon, r.lat, ARRS); });
+  function zoneOnly(results) {
+    return results.filter(function (r) { return M.inZone(r.lon, r.lat, ZONES); });
   }
 
-  // Sans réseau : code postal 750xx ou « 11e », « Paris 11 ».
-  function parseArrondissement(text) {
+  function fold(t) { return t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim(); }
+  // Sans réseau : code postal, nom de commune, ou « 11e », « Paris 11 ».
+  function parsePlace(text) {
+    var arr = function (n) { return ZONE_BY_CODE[String(75100 + n)]; };
     var m = text.match(/\b75(?:0(\d\d)|116)\b/);
-    if (m) return m[1] ? parseInt(m[1], 10) : 16;
+    if (m) return arr(m[1] ? parseInt(m[1], 10) : 16) || null;
+    m = text.match(/\b(9[234]\d\d\d)\b/);
+    if (m) { var byCp = ZONES.filter(function (z) { return z.cp === m[1]; })[0]; if (byCp) return byCp; }
+    var f = " " + fold(text) + " ";
+    var named = ZONES.filter(function (z) { return z.dep !== "75" && f.indexOf(" " + fold(z.name) + " ") >= 0; })
+      .sort(function (a, b) { return b.name.length - a.name.length; })[0];
+    if (named) return named;
     m = text.match(/\b(\d{1,2})\s*(?:e|è|ème|eme|er)\b/i) || text.match(/paris\s+(\d{1,2})\b/i);
-    if (m) { var n = parseInt(m[1], 10); if (n >= 1 && n <= 20) return n; }
+    if (m) { var n = parseInt(m[1], 10); if (n >= 1 && n <= 20) return arr(n); }
     return null;
   }
 
@@ -518,13 +599,13 @@
   }
 
   function offlineFallback(text) {
-    var n = parseArrondissement(text);
-    if (n) {
+    var z = parsePlace(text);
+    if (z) {
       markEdited();
-      setArrondissement(n);
-      note("Recherche d'adresse indisponible ici : position placée au centre du " + arrName(n) + ". Clique sur la carte pour la préciser.", true);
+      setZone(z);
+      note("Recherche d'adresse indisponible ici : position placée au centre " + (z.dep === "75" ? "du " + arrName(z.n) : "de " + z.name) + ". Clique sur la carte pour la préciser.", true);
     } else {
-      note("La recherche d'adresse ne répond pas depuis cette page. Clique sur la carte, choisis l'arrondissement, ou tape un code postal (ex. 75011).", true);
+      note("La recherche d'adresse ne répond pas depuis cette page. Clique sur la carte, choisis la commune, ou tape un code postal (ex. 75011 ou 93100).", true);
     }
   }
 
@@ -537,9 +618,9 @@
       debounce = setTimeout(function () {
         lastQuery = q;
         busy(true);
-        geocode(q + (/paris|750\d\d/i.test(q) ? "" : " Paris")).then(function (res) {
+        geocode(q).then(function (res) {
           if (lastQuery !== q) return;
-          showSuggestions(parisOnly(res).slice(0, 5));
+          showSuggestions(zoneOnly(res).slice(0, 5));
         }).catch(function () { state.networkDown = Date.now(); showSuggestions([]); }).then(function () { if (lastQuery === q) busy(false); });
       }, 280);
     });
@@ -568,11 +649,11 @@
       note("Recherche de l'adresse…");
       lastQuery = q;
       busy(true);
-      geocode(q + (/paris|750\d\d/i.test(q) ? "" : " Paris")).then(function (res) {
+      geocode(q).then(function (res) {
         busy(false);
-        var paris = parisOnly(res);
-        if (paris.length) chooseSuggestion(paris[0]);
-        else if (res.length) note("Cette adresse est hors de Paris. Fournaise ne couvre que Paris pour l'instant ; Lyon, Marseille et Toulouse sont les prochaines villes.", true);
+        var inside = zoneOnly(res);
+        if (inside.length) chooseSuggestion(inside[0]);
+        else if (res.length) note("Cette adresse est hors de Paris et de la petite couronne. Fournaise couvre Paris, les Hauts-de-Seine, la Seine-Saint-Denis et le Val-de-Marne pour l'instant.", true);
         else note("Adresse introuvable. Vérifie l'orthographe ou clique sur la carte.", true);
       }).catch(function () { busy(false); state.networkDown = Date.now(); offlineFallback(q); });
     });
@@ -623,7 +704,7 @@
     $("s-2050s").textContent = "score " + r.y2050.scoreRounded + "/10" + (diff > 0 ? " · " + diff + " de plus" : "");
     $("s-trop").innerHTML = nights(r.now.tropical) + '<span class="u">par été</span>';
 
-    var arr = r.heat.arr ? "Paris " + arrName(r.heat.arr.n) : "Paris";
+    var arr = r.heat.zone ? r.heat.zone.name : "Paris";
     $("v-extra").textContent = "Moyenne 2017-2026 · pire été : " + r.worstYear.year + " avec " + nights(r.worstYear.n26) + " " + plural(r.worstYear.n26, "nuit", "nuits") +
       " · au seuil de 24 °C recommandé par l'OMS : " + nights(r.n24) + " " + plural(r.n24, "nuit", "nuits") + ".";
     $("v-live").textContent = "Score " + r.scoreRounded + " sur 10, " + r.verdict.label.toLowerCase() + ". " + nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") + " par été, " + nights(r.y2050.n26) + " en 2050. Confiance " + r.confidence.label.toLowerCase() + ".";
@@ -843,7 +924,7 @@
     story.style.setProperty("--story-b", c2);
     $("story-score").innerHTML = r.scoreRounded + "<small>/10</small>";
     $("story-line").textContent = shareLine(r);
-    var arr = r.heat.arr ? "Paris " + arrName(r.heat.arr.n) : "Paris";
+    var arr = r.heat.zone ? r.heat.zone.name : "Paris";
     $("story-meta").textContent = nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") + " par été · " + arr;
     $("share-text").textContent = shareText(r);
   }
@@ -894,7 +975,7 @@
     ctx.font = "700 76px Unbounded, 'Arial Black', sans-serif";
     ctx.fillText(shareLine(r), 80, 900);
     ctx.font = "500 44px 'Instrument Sans', 'Segoe UI', sans-serif";
-    var arr = r.heat.arr ? "Paris " + arrName(r.heat.arr.n) : "Paris";
+    var arr = r.heat.zone ? r.heat.zone.name : "Paris";
     ctx.fillText(nights(r.n26) + " " + plural(r.n26, "nuit étouffante", "nuits étouffantes") + " par été", 80, 1010);
     ctx.fillText(nights(r.y2050.n26) + " en 2050 · " + arr, 80, 1070);
     ctx.globalAlpha = 0.75;
@@ -1008,15 +1089,15 @@
       if (i > 0) { try { vals[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1)); } catch (e) {} }
     });
     var lon = parseFloat(vals.lon), lat = parseFloat(vals.lat);
-    if (!isFinite(lon) || !isFinite(lat) || !M.inParis(lon, lat, ARRS)) return false;
+    if (!isFinite(lon) || !isFinite(lat) || !M.inZone(lon, lat, ZONES)) return false;
     var profile = Object.assign({}, M.DEFAULT_PROFILE);
     PROFILE_KEYS.forEach(function (k) {
       if (vals[k] && QUERY_LIMITS[k].indexOf(vals[k]) >= 0) { profile[k] = vals[k]; state.touched[k] = true; }
     });
-    var arr = M.arrondissementAt(lon, lat, ARRS);
+    var zone = M.zoneAt(lon, lat, ZONES);
     state.example = null;
     state.profile = profile;
-    state.location = { lon: lon, lat: lat, precision: "map", label: "Position partagée, Paris " + arrName(arr.n), approx: true };
+    state.location = { lon: lon, lat: lat, precision: "map", label: "Position partagée, " + zone.name, approx: true };
     state.prefilled = {}; state.building = null;
     $("addr-input").value = "";
     syncForm();
@@ -1104,14 +1185,14 @@
       if (!cur) cur = state.location ? { lon: state.location.lon, lat: state.location.lat } : { lon: 2.3522, lat: 48.8566 };
       var step = e.shiftKey ? 0.6 : 0.15;
       var lon = cur.lon + (dir[0] * step) / M.KM_LON, lat = cur.lat + (dir[1] * step) / M.KM_LAT;
-      var arr = M.inParis(lon, lat, ARRS) ? M.arrondissementAt(lon, lat, ARRS) : null;
-      if (!arr) { note("Ce point est hors de Paris.", true); return; }
+      var z = M.zoneAt(lon, lat, ZONES);
+      if (!z) { note(OUTSIDE, true); return; }
       cur = { lon: lon, lat: lat };
       clearTimeout(timer);
       timer = setTimeout(function () {
         markEdited();
-        setLocation({ lon: cur.lon, lat: cur.lat, precision: "map", label: "Point placé sur la carte, Paris " + arrName(arr.n) });
-        note("Position déplacée dans le " + arrName(arr.n) + " arrondissement.");
+        setLocation({ lon: cur.lon, lat: cur.lat, precision: "map", label: "Point placé sur la carte, " + z.name });
+        note("Position déplacée " + inZoneText(z) + ".");
         cur = null;
       }, 350);
     });
@@ -1163,13 +1244,14 @@
   // ---------------------------------------------------------------------------
   function update() {
     if (!state.location) return;
-    var r = M.analyze(D.climate, state.location, state.profile, ARRS);
+    ensureTiles(state.location);
+    var r = M.analyze(D.climate, state.location, state.profile, ZONES);
     state.result = r;
     renderVerdict(r);
     renderStripes(r);
     renderWaterfall(r);
     renderFuture(r);
-    renderAdvice(M.advice(D.climate, state.location, state.profile, ARRS, r));
+    renderAdvice(M.advice(D.climate, state.location, state.profile, ZONES, r));
     renderVisit();
     renderShare(r);
     placePin();
@@ -1217,12 +1299,11 @@
     var svg = $("map"), box = svg.parentNode, tip = document.createElement("div");
     tip.className = "map-tip"; tip.hidden = true; box.appendChild(tip);
     svg.addEventListener("mousemove", function (ev) {
-      var rect = svg.getBoundingClientRect();
-      var ll = unproject(((ev.clientX - rect.left) / rect.width) * MAP_W, ((ev.clientY - rect.top) / rect.height) * MAP_H);
-      var arr = M.arrondissementAt(ll[0], ll[1], ARRS);
-      if (!arr) { tip.hidden = true; return; }
-      var d = M.localHeat(ll[0], ll[1], ARRS).delta;
-      tip.textContent = "Paris " + arrName(arr.n) + " · " + (d >= 0 ? "+" : "−") + fr(Math.abs(d), 1) + " °C la nuit";
+      var ll = eventLonLat(svg, ev);
+      var z = M.zoneAt(ll[0], ll[1], ZONES);
+      if (!z) { tip.hidden = true; return; }
+      var d = M.localHeat(ll[0], ll[1]).delta;
+      tip.textContent = z.name + " · " + (d >= 0 ? "+" : "−") + fr(Math.abs(d), 1) + " °C la nuit";
       tip.style.left = (ev.clientX - box.getBoundingClientRect().left) + "px";
       tip.style.top = (ev.clientY - box.getBoundingClientRect().top) + "px";
       tip.hidden = false;
@@ -1289,7 +1370,7 @@
       update();
     });
     renderExamples();
-    renderArrSelect();
+    renderZoneSelect();
     renderMap();
     wireAddress();
     wireStripes();

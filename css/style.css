@@ -200,6 +200,15 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .map-legend .ramp { width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--h0), var(--h1), var(--h2), var(--h3), var(--h4)); }
 .map-legend .grow { flex: 1; }
 .arr-label { font-family: var(--font-data); font-size: 11px; fill: var(--ink); opacity: 0.55; pointer-events: none; }
+.dep-label { font-family: var(--font-data); font-size: 15px; font-weight: 600; fill: var(--ink); opacity: 0.5; pointer-events: none; paint-order: stroke; stroke: var(--surface-2); stroke-width: 3px; }
+#map .z-com, #map .z-arr { fill: none; stroke: var(--map-line); vector-effect: non-scaling-stroke; }
+#map .z-com { stroke-width: 0.8; }
+#map .water { fill: var(--seine); opacity: 0.9; }
+#map .z-arr { stroke-width: 0.5; }
+#map:not(.zoomed) .arr-labels, #map.zoomed .dep-label { display: none; }
+.map-views { position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--surface); font-size: 0.78rem; }
+.map-views button { border: 0; background: none; color: var(--muted); padding: 6px 11px; font: inherit; cursor: pointer; min-height: 32px; }
+.map-views button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
 .pin-halo { fill: var(--accent); opacity: 0.25; }
 .pin-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2.5; }
 
@@ -353,6 +362,7 @@ footer { border-top: 1px solid var(--line); margin-top: 24px; background: var(--
 .topbar nav a { padding: 6px 2px; border-bottom: 2px solid transparent; }
 .topbar nav a:hover { border-bottom-color: var(--accent); }
 @media (max-width: 760px) { .topbar nav { display: none; } .city-pill { display: inline-block; margin-left: auto; } .icon-btn { margin-left: 0; } }
+@media (max-width: 379px) { .city-pill { display: none; } .icon-btn { margin-left: auto; } }
 .btn { transition: transform 0.12s, opacity 0.15s, border-color 0.15s, background 0.15s; }
 .btn:active { transform: translateY(1px); }
 .btn.hot:hover { opacity: 1; filter: brightness(1.07); }

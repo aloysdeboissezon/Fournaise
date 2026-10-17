@@ -4,6 +4,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
+const fs = require("node:fs");
 
 global.window = global;
 const root = path.join(__dirname, "..", "js");
@@ -12,11 +13,13 @@ require(path.join(root, "data-heat.js"));
 const M = require(path.join(root, "model.js"));
 const D = global.FOURNAISE_DATA;
 M.setHeatGrid(D.heat);
+// Tuiles fines de 100 m (data/heat/), comme la page les charge à l'adresse.
+D.heat.tiles.forEach((k) => M.addHeatTile(JSON.parse(fs.readFileSync(path.join(root, "..", "data", "heat", k + ".json"), "utf8"))));
 
-const ARRS = D.arrondissements;
+const ZONES = D.zones;
 const MARTYRS = { lon: 2.3397, lat: 48.8795, precision: "address" };
 const MONTSOURIS = { lon: 2.3378, lat: 48.8222, precision: "address" };
-const analyze = (profile, loc) => M.analyze(D.climate, loc || MARTYRS, profile, ARRS);
+const analyze = (profile, loc) => M.analyze(D.climate, loc || MARTYRS, profile, ZONES);
 
 const CASES = {
   "chambre de bonne (toit, ouest, Velux)": { floor: "roof", orient: "W", windows: "roof", shutters: "none", traversant: "no", nightOpen: "yes", era: "pre1914", size: "xs" },
@@ -26,10 +29,10 @@ const CASES = {
 };
 // [nuits étouffantes, nuits >= 28 °C, score, score 2050], moyennes 2017-2026 à l'adresse des Martyrs
 const GOLDEN = {
-  "chambre de bonne (toit, ouest, Velux)": [49.9, 32.5, 7.68, 8.9],
-  "haussmannien nord traversant volets": [3.9, 0.8, 2.7, 3.53],
-  "dernier étage sud années 70": [46.2, 25.1, 7.3, 8.53],
-  "profil par défaut": [11.6, 3.9, 4.02, 5.07]
+  "chambre de bonne (toit, ouest, Velux)": [51.9, 34.9, 7.84, 9.06],
+  "haussmannien nord traversant volets": [4.3, 1, 2.8, 3.67],
+  "dernier étage sud années 70": [48.4, 26.5, 7.45, 8.71],
+  "profil par défaut": [13, 4.1, 4.19, 5.22]
 };
 
 if (process.argv.includes("--print")) {
@@ -89,8 +92,30 @@ test("la climatisation réduit fortement les nuits étouffantes", () => {
   assert.ok(avec.n26 < sans.n26 * 0.2);
 });
 
-test("la grille de chaleur couvre Paris et pas l'extérieur de la boîte", () => {
-  assert.ok(M.inParis(2.3522, 48.8566, ARRS));
-  assert.ok(!M.inParis(2.5, 48.86, ARRS));
-  assert.ok(!M.inParis(2.35, 49.5, ARRS));
+test("la zone couvre Paris et la petite couronne, pas au-delà", () => {
+  assert.equal(M.zoneAt(2.3522, 48.8566, ZONES).code, "75104");
+  assert.equal(M.zoneAt(2.4415, 48.8611, ZONES).name, "Montreuil");          // Seine-Saint-Denis
+  assert.equal(M.zoneAt(2.2399, 48.8352, ZONES).name, "Boulogne-Billancourt"); // Hauts-de-Seine
+  assert.equal(M.zoneAt(2.4553, 48.7904, ZONES).name, "Créteil");            // Val-de-Marne
+  assert.ok(!M.inZone(2.13, 48.80, ZONES), "Versailles (78) est hors zone");
+  assert.ok(!M.inZone(2.35, 49.5, ZONES));
+  assert.equal(ZONES.length, 142);
+});
+
+test("hors de Paris, la confiance baisse et le dit", () => {
+  const paris = analyze({}, MARTYRS), banlieue = analyze({}, { lon: 2.4415, lat: 48.8611, precision: "address" });
+  assert.ok(banlieue.confidence.points < paris.confidence.points);
+  assert.ok(banlieue.confidence.reasons.some((x) => !x.ok && /Hors de Paris/.test(x.text)));
+  assert.ok(!paris.confidence.reasons.some((x) => /Hors de Paris/.test(x.text)));
+});
+
+test("la carte fine et la carte d'ensemble concordent", () => {
+  for (const [lon, lat] of [[2.3397, 48.8795], [2.4415, 48.8611], [2.2399, 48.8352], [2.4553, 48.7904]]) {
+    const fine = M.localHeat(lon, lat, ZONES);
+    assert.ok(fine.fine, "tuile chargée");
+    M.setHeatGrid(D.heat);
+    const coarse = M.localHeat(lon, lat, ZONES);
+    D.heat.tiles.forEach((k) => M.addHeatTile(JSON.parse(fs.readFileSync(path.join(root, "..", "data", "heat", k + ".json"), "utf8"))));
+    assert.ok(!coarse.fine && Math.abs(coarse.delta - fine.delta) < 0.6, `${lon},${lat} : ${coarse.delta} contre ${fine.delta}`);
+  }
 });

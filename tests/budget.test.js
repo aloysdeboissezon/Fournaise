@@ -6,13 +6,20 @@ const path = require("node:path");
 const zlib = require("node:zlib");
 
 const root = path.join(__dirname, "..");
-const BUDGET = { "index.html": 14000, "css/style.css": 12000, "css/fonts.css": 2000, "js/app.js": 26000, "js/model.js": 9000, "js/data-heat.js": 48000, "js/data-paris.js": 9000 };
+const BUDGET = { "index.html": 14000, "css/style.css": 12000, "css/fonts.css": 2000, "js/app.js": 26000, "js/model.js": 10000, "js/data-heat.js": 15000, "js/data-paris.js": 21000 };
 
 test("poids gzip de la page et de ses scripts", () => {
   for (const [file, max] of Object.entries(BUDGET)) {
     const size = zlib.gzipSync(fs.readFileSync(path.join(root, file)), { level: 9 }).length;
     assert.ok(size <= max, `${file} : ${size} octets gzip, plafond ${max}`);
   }
+});
+
+test("tuiles de la carte de chaleur et fichiers par commune chargés à l'adresse", () => {
+  const max = (dir) => Math.max(...fs.readdirSync(path.join(root, dir)).map((f) => zlib.gzipSync(fs.readFileSync(path.join(root, dir, f)), { level: 9 }).length));
+  assert.ok(max("data/heat") <= 25000, "tuile de chaleur trop lourde");
+  assert.ok(max("data/dpe") <= 130000, "fichier DPE trop lourd");
+  assert.ok(max("data/bdnb") <= 120000, "fichier BDNB trop lourd");
 });
 
 test("aucune ressource externe sur la page d'accueil", () => {

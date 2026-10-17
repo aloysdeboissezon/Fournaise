@@ -19,7 +19,7 @@ const server = http.createServer((req, res) => {
   const base = "http://localhost:" + server.address().port + "/";
   const browser = await chromium.launch();
   let failed = 0;
-  for (const [page, viewport] of [["index.html", { width: 1366, height: 850 }], ["index.html", { width: 375, height: 812 }], ["mentions-legales.html", { width: 1366, height: 850 }], ["confidentialite.html", { width: 1366, height: 850 }], ["donnees-licences.html", { width: 1366, height: 850 }], ["paris-15e.html", { width: 375, height: 812 }]]) {
+  for (const [page, viewport] of [["index.html", { width: 1366, height: 850 }], ["index.html", { width: 375, height: 812 }], ["mentions-legales.html", { width: 1366, height: 850 }], ["confidentialite.html", { width: 1366, height: 850 }], ["donnees-licences.html", { width: 1366, height: 850 }], ["paris-15e.html", { width: 375, height: 812 }], ["montreuil-93.html", { width: 375, height: 812 }], ["petite-couronne.html", { width: 1366, height: 850 }]]) {
     const ctx = await browser.newContext({ viewport, serviceWorkers: "block" });
     const p = await ctx.newPage();
     await p.route(/geopf\.fr|data\.gouv\.fr/, (r) => r.abort());
