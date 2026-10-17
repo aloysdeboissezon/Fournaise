@@ -625,6 +625,18 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 .cmp-summary, #cmp-summary { font-weight: 500; }
 @media (pointer: coarse) { .cmp-acts a, .cmp-acts button { min-height: 44px; display: inline-flex; align-items: center; } }
 
+/* ---- Coûts des conseils ---- */
+.tip-card .tip-cost { margin: 2px 0 0; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 0.9rem; color: var(--ink); }
+.tip-card .tip-cost small { display: block; font-size: 0.78rem; color: var(--muted); }
+.tip-card .tip-cost a { color: inherit; }
+.tip-tenant { margin: 0; justify-self: start; font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.tip-tenant::before { content: "✓ "; }
+.tip-tenant.ask::before { content: "! "; }
+.tip-tenant.no::before { content: "✗ "; }
+.tip-tenant.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.tip-tenant.ask { color: color-mix(in srgb, var(--warn) 75%, var(--ink)); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.tip-tenant.no { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
+
 </style>
 <noscript><p class="noscript">Fournaise calcule le score dans ton navigateur : active JavaScript pour l'utiliser.</p></noscript>
 <a class="skip" href="#outil">Aller directement à l'outil</a>
@@ -852,6 +864,7 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
       </div>
     </div>
     <div class="advice" id="advice"></div>
+    <p class="caption">Les coûts sont des fourchettes indicatives TTC : avec un lien « source », le chiffre vient de cette page ; sinon c'est une estimation de Fournaise, à confirmer par un devis. En location, une transformation du logement demande l'accord écrit du propriétaire (article 7 f de la loi du 6 juillet 1989), et une façade peut dépendre du règlement de copropriété. Les nuits gagnées sont calculées par le modèle, pas les coûts.</p>
   </section>
 
   <section class="wrap section grid2" id="partage">
@@ -946,6 +959,7 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
           <tr><td>Réchauffement en 2050</td><td><span class="badge b-pub">Publié</span> + <span class="badge b-est">Estimé</span></td><td>TRACC : +2 °C en 2030, +2,7 °C en 2050, +4 °C en 2100 (<a href="https://www.ecologie.gouv.fr/sites/default/files/documents/27012026_DP_TRACC.pdf" target="_blank" rel="noopener">ministère</a>). Le décalage appliqué aux étés (+1,2 °C la nuit, +1,4 °C le jour par rapport à 2017-2026) est une conversion de Fournaise ; le dossier ne donne pas de chiffre d'été.</td></tr>
           <tr><td>Seuil de nuit étouffante : 26 °C, très difficile : 28 °C</td><td><span class="badge b-cho">Choix</span></td><td>L'OMS recommande de rester sous 24 °C la nuit (rapporté par <a href="https://fr.euronews.com/sante/2026/08/19/les-nuits-chaudes-perturbent-votre-sommeil-et-nuisent-a-votre-sante-comment-reagir" target="_blank" rel="noopener">Euronews</a>). Les seuils de Fournaise sont un parti pris, modifiable dans <code>js/model.js</code>.</td></tr>
           <tr><td>Effet du toit, du soleil, du vitrage, des volets, de la ventilation</td><td><span class="badge b-est">Estimé</span></td><td>Coefficients physiquement plausibles mais non calés sur des mesures dans des logements. La logique suit le confort d'été du DPE : sans protection solaire sur les fenêtres sud, est ou ouest, ou au dernier étage sous une toiture non isolée, le logement est classé « insuffisant » (<a href="https://www.connaissancedesenergies.org/afp/logements-isoles-pour-lhiver-mais-etouffants-lete-les-limites-du-dpe-260712" target="_blank" rel="noopener">AFP</a>).</td></tr>
+          <tr><td>Coût des conseils (volets, isolation, ventilateur…)</td><td><span class="badge b-est">Estimé</span></td><td>Fourchettes indicatives TTC. Volets roulants posés : <a href="https://www.travaux.com/fenetre-porte/guide-des-prix/volets" target="_blank" rel="noopener">Travaux.com</a> ; isolation des combles et des rampants : fourchettes courantes relevées sur <a href="https://climate.selectra.com/fr/renovation-energetique/isolation-thermique/combles" target="_blank" rel="noopener">Selectra</a>. Les autres sont des estimations de Fournaise. Elles n'entrent pas dans le calcul du score.</td></tr>
           <tr><td>Effet de la climatisation</td><td><span class="badge b-cho">Choix</span></td><td>Avec la climatisation, le nombre de nuits étouffantes est multiplié par 0,15. C'est un facteur arbitraire de Fournaise, sans simulation ni mesure.</td></tr>
           <tr><td>Contours des arrondissements et des communes</td><td><span class="badge b-mes">Publié</span></td><td>IGN, ADMIN EXPRESS COG CARTO (Géoplateforme), simplifiés à environ 30 m pour la carte.</td></tr>
           <tr><td>Seine et Marne sur la carte</td><td><span class="badge b-mes">Mesuré</span></td><td>Surfaces en eau de plus de 2 ha de la BD TOPO, simplifiées à environ 15 m.</td></tr>
@@ -2637,6 +2651,32 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
   }
 
   // Conseils -----------------------------------------------------------------
+  // Coûts : fourchettes indicatives TTC. Avec un lien, le chiffre vient de la source citée ; sans lien, c'est une
+  // estimation de Fournaise (à confirmer par un devis). Ils ne touchent pas au calcul du score.
+  // tenant : "yes" le locataire peut le faire seul, "ask" accord écrit du propriétaire (et de la copropriété si la façade change), "no" décision de copropriété.
+  var COSTS = {
+    volets: { cost: "200 à 400 € par fenêtre", note: "volet roulant manuel posé", src: "https://www.travaux.com/fenetre-porte/guide-des-prix/volets", tenant: "ask" },
+    velux: { cost: "100 à 400 € par fenêtre", note: "store pare-soleil extérieur, selon le modèle", tenant: "ask" },
+    courant: { cost: "0 à 100 €", note: "fenêtres ouvertes gratuites, ventilateur en option", tenant: "yes" },
+    bruit: { cost: "10 à 60 €", note: "moustiquaire amovible, bouchons, entrebâilleur", tenant: "yes" },
+    apports: { cost: "0 à 30 €", note: "ampoules LED, multiprise à interrupteur", tenant: "yes" },
+    vegetal: { cost: "30 à 150 €", note: "jardinières et treillage sur un balcon", tenant: "yes", tenantText: "Locataire : oui sur un balcon (vérifier le règlement de copropriété)" },
+    toiture: { cost: "20 à 70 € par m² en combles perdus, 50 à 150 € par m² sous rampants", note: "isolation, hors aides", src: "https://climate.selectra.com/fr/renovation-energetique/isolation-thermique/combles", tenant: "no" },
+    ventilateur: { cost: "20 à 100 €", note: "ventilateur sur pied ou de table", tenant: "yes" }
+  };
+  var TENANT = {
+    yes: ["ok", "Locataire : oui, sans accord"],
+    ask: ["ask", "Locataire : avec l'accord écrit du propriétaire"],
+    no: ["no", "Locataire : non, décision du propriétaire ou de la copropriété"]
+  };
+  function costHtml(id) {
+    var c = COSTS[id];
+    if (!c) return "";
+    var t = TENANT[c.tenant], tenantText = c.tenantText || t[1];
+    return '<p class="tip-cost"><strong>' + escapeHtml(c.cost) + "</strong> <small>" + escapeHtml(c.note) + " · " +
+      (c.src ? '<a href="' + escapeHtml(c.src) + '" target="_blank" rel="noopener">source</a>' : "estimation Fournaise") + '</small></p>' +
+      '<p class="tip-tenant ' + t[0] + '">' + escapeHtml(tenantText) + "</p>";
+  }
   function renderAdvice(list) {
     if (list) state.lastAdvice = list; else list = state.lastAdvice;
     if (state.adviceSelf) list = list.filter(function (a) { return a.who === "Toi"; });
@@ -2644,7 +2684,7 @@ window.FOURNAISE_DATA.heat = {"source":"IGN BD TOPO V3 (bâtiments, végétation
       var gain = a.saved >= 0.5
         ? "−" + Math.round(a.saved) + " " + plural(a.saved, "nuit", "nuits") + (a.felt ? " <small>ressenties</small>" : " <small>par été</small>")
         : "Effet faible <small>ici</small>";
-      return '<article class="card tip-card"><span class="who">' + escapeHtml(a.who) + '</span><span class="gain">' + gain + "</span><h3>" + escapeHtml(a.title) + "</h3><p>" + escapeHtml(a.text) + "</p></article>";
+      return '<article class="card tip-card"><span class="who">' + escapeHtml(a.who) + '</span><span class="gain">' + gain + "</span><h3>" + escapeHtml(a.title) + "</h3><p>" + escapeHtml(a.text) + "</p>" + costHtml(a.id) + "</article>";
     }).join("");
   }
 

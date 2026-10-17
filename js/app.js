@@ -1084,6 +1084,32 @@
   }
 
   // Conseils -----------------------------------------------------------------
+  // Coûts : fourchettes indicatives TTC. Avec un lien, le chiffre vient de la source citée ; sans lien, c'est une
+  // estimation de Fournaise (à confirmer par un devis). Ils ne touchent pas au calcul du score.
+  // tenant : "yes" le locataire peut le faire seul, "ask" accord écrit du propriétaire (et de la copropriété si la façade change), "no" décision de copropriété.
+  var COSTS = {
+    volets: { cost: "200 à 400 € par fenêtre", note: "volet roulant manuel posé", src: "https://www.travaux.com/fenetre-porte/guide-des-prix/volets", tenant: "ask" },
+    velux: { cost: "100 à 400 € par fenêtre", note: "store pare-soleil extérieur, selon le modèle", tenant: "ask" },
+    courant: { cost: "0 à 100 €", note: "fenêtres ouvertes gratuites, ventilateur en option", tenant: "yes" },
+    bruit: { cost: "10 à 60 €", note: "moustiquaire amovible, bouchons, entrebâilleur", tenant: "yes" },
+    apports: { cost: "0 à 30 €", note: "ampoules LED, multiprise à interrupteur", tenant: "yes" },
+    vegetal: { cost: "30 à 150 €", note: "jardinières et treillage sur un balcon", tenant: "yes", tenantText: "Locataire : oui sur un balcon (vérifier le règlement de copropriété)" },
+    toiture: { cost: "20 à 70 € par m² en combles perdus, 50 à 150 € par m² sous rampants", note: "isolation, hors aides", src: "https://climate.selectra.com/fr/renovation-energetique/isolation-thermique/combles", tenant: "no" },
+    ventilateur: { cost: "20 à 100 €", note: "ventilateur sur pied ou de table", tenant: "yes" }
+  };
+  var TENANT = {
+    yes: ["ok", "Locataire : oui, sans accord"],
+    ask: ["ask", "Locataire : avec l'accord écrit du propriétaire"],
+    no: ["no", "Locataire : non, décision du propriétaire ou de la copropriété"]
+  };
+  function costHtml(id) {
+    var c = COSTS[id];
+    if (!c) return "";
+    var t = TENANT[c.tenant], tenantText = c.tenantText || t[1];
+    return '<p class="tip-cost"><strong>' + escapeHtml(c.cost) + "</strong> <small>" + escapeHtml(c.note) + " · " +
+      (c.src ? '<a href="' + escapeHtml(c.src) + '" target="_blank" rel="noopener">source</a>' : "estimation Fournaise") + '</small></p>' +
+      '<p class="tip-tenant ' + t[0] + '">' + escapeHtml(tenantText) + "</p>";
+  }
   function renderAdvice(list) {
     if (list) state.lastAdvice = list; else list = state.lastAdvice;
     if (state.adviceSelf) list = list.filter(function (a) { return a.who === "Toi"; });
@@ -1091,7 +1117,7 @@
       var gain = a.saved >= 0.5
         ? "−" + Math.round(a.saved) + " " + plural(a.saved, "nuit", "nuits") + (a.felt ? " <small>ressenties</small>" : " <small>par été</small>")
         : "Effet faible <small>ici</small>";
-      return '<article class="card tip-card"><span class="who">' + escapeHtml(a.who) + '</span><span class="gain">' + gain + "</span><h3>" + escapeHtml(a.title) + "</h3><p>" + escapeHtml(a.text) + "</p></article>";
+      return '<article class="card tip-card"><span class="who">' + escapeHtml(a.who) + '</span><span class="gain">' + gain + "</span><h3>" + escapeHtml(a.title) + "</h3><p>" + escapeHtml(a.text) + "</p>" + costHtml(a.id) + "</article>";
     }).join("");
   }
 

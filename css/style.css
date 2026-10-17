@@ -617,3 +617,15 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 .cmp-acts a { color: inherit; }
 .cmp-summary, #cmp-summary { font-weight: 500; }
 @media (pointer: coarse) { .cmp-acts a, .cmp-acts button { min-height: 44px; display: inline-flex; align-items: center; } }
+
+/* ---- Coûts des conseils ---- */
+.tip-card .tip-cost { margin: 2px 0 0; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 0.9rem; color: var(--ink); }
+.tip-card .tip-cost small { display: block; font-size: 0.78rem; color: var(--muted); }
+.tip-card .tip-cost a { color: inherit; }
+.tip-tenant { margin: 0; justify-self: start; font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.tip-tenant::before { content: "✓ "; }
+.tip-tenant.ask::before { content: "! "; }
+.tip-tenant.no::before { content: "✗ "; }
+.tip-tenant.ok { color: color-mix(in srgb, var(--ok) 75%, var(--ink)); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.tip-tenant.ask { color: color-mix(in srgb, var(--warn) 75%, var(--ink)); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.tip-tenant.no { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
