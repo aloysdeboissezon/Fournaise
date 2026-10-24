@@ -1,7 +1,7 @@
 """Zone couverte par Fournaise : Paris et la petite couronne (Hauts-de-Seine, Seine-Saint-Denis, Val-de-Marne).
 
 Partagé par fetch_sources.py, build_heat.py, build_lst.py, build_dpe.py, build_bdnb.py et build_data.py.
-Le rectangle englobe les 143 communes et arrondissements de la zone (contours ADMIN EXPRESS de l'IGN),
+Le rectangle englobe les 142 communes et arrondissements (Pierrefitte-sur-Seine est fusionnée dans Saint-Denis) de la zone (contours ADMIN EXPRESS de l'IGN),
 plus une marge de ~600 m pour que le lissage de la carte de chaleur ne s'arrête pas net à la limite.
 """
 import math
