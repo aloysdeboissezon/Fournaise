@@ -41,13 +41,13 @@ HEAD = """<!doctype html>
 """
 
 BANNER = '<p class="draft-banner">Brouillon à faire relire : les passages surlignés sont à compléter par l\'éditeur. Cette page n\'a pas été relue par un juriste.</p>'
-MAIL = '<span class="a-completer">À COMPLÉTER : adresse e-mail dédiée</span>'
+MAIL = '<a href="mailto:aloys.deboissezon@gmail.com">aloys.deboissezon@gmail.com</a>'
 
 MENTIONS = BANNER + """
 <h1>Mentions légales</h1>
 <h2>Éditeur du site</h2>
-<p>Fournaise est un site gratuit, non commercial, édité à titre personnel par <span class="a-completer">À COMPLÉTER : nom, ou pseudonyme si l'éditeur choisit de rester anonyme auprès du public</span>.</p>
-<p>Directeur de la publication : <span class="a-completer">À COMPLÉTER : même personne</span>.</p>
+<p>Fournaise est un site gratuit, non commercial, édité à titre personnel par Aloys de Boissezon.</p>
+<p>Directeur de la publication : Aloys de Boissezon.</p>
 <p>Contact : """ + MAIL + """, ou <a href="@ISSUES@" target="_blank" rel="noopener">un signalement public sur GitHub</a>.</p>
 <h2>Hébergeur</h2>
 <p>GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis (service GitHub Pages).</p>
