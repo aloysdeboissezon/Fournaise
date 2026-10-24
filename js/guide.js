@@ -29,7 +29,7 @@
     Array.prototype.forEach.call($("mode-toggle").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", b.dataset.mode === m ? "true" : "false"); });
     $("mode-hint").textContent = m === "quick"
       ? "Une adresse et 4 questions suffisent. Le score se précise si tu réponds à plus."
-      : "Toutes les questions : le score est plus fiable et la plage d'incertitude se resserre.";
+      : "Toutes les questions : le score est plus fiable et la plage de sensibilité se resserre.";
     if (m === "quick") render(focus);
     save(m);
   }
