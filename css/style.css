@@ -676,3 +676,17 @@ html:not(.ready) .verdict .score, html:not(.ready) .stats { opacity: 0; }
 .btn:not(:disabled):active { transform: translateY(0) scale(0.98); }
 .tip-card:hover, .cmp-card:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(20, 30, 40, 0.08), 0 14px 32px rgba(20, 30, 40, 0.1); }
 .foot-brand .brand-mark { width: 26px; height: 30px; }
+
+/* Pages de commune sur petit écran : le bouton d'en-tête et le grand bouton ne débordent plus */
+@media (max-width: 520px) { .topbar-in { gap: 12px; } .topbar .btn { padding: 8px 12px; font-size: 0.9rem; } .btn.big { white-space: normal; text-align: center; } }
+
+/* Page Données et licences : fiches empilées sur petit écran */
+@media (max-width: 700px) {
+  .lic thead { display: none; }
+  .lic, .lic tbody, .lic tr, .lic td { display: block; width: 100%; }
+  .lic tr { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .lic td { border: 0; padding: 2px 0; }
+  .lic td:first-child { font-weight: 600; }
+  .lic td:nth-child(3)::before { content: "Licence : "; color: var(--muted); }
+  .lic td:nth-child(2)::before { content: "Source : "; color: var(--muted); }
+}

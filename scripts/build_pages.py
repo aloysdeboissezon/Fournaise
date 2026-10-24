@@ -100,7 +100,7 @@ ROWS = [
 DONNEES = BANNER + """
 <h1>Données et licences</h1>
 <p>Fournaise ne repose que sur des données ouvertes. Cette page indique, pour chacune, la source, la licence et la mention à afficher. Le niveau de preuve de chaque donnée (mesuré, publié, estimé, choisi) est détaillé dans la section « Sources et niveau de preuve » de la <a href="./#sources">page d'accueil</a>.</p>
-<table><thead><tr><th>Donnée</th><th>Source</th><th>Licence</th><th>Mention et remarques</th></tr></thead><tbody>""" + "".join("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % r for r in ROWS) + """</tbody></table>
+<div class="tbl-wrap"><table class="lic"><thead><tr><th>Donnée</th><th>Source</th><th>Licence</th><th>Mention et remarques</th></tr></thead><tbody>""" + "".join("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % r for r in ROWS) + """</tbody></table></div>
 <p>Les données ont été lues le 17 octobre 2026. Les fichiers calculés à partir d'elles (grille de chaleur, DPE et BDNB regroupés par adresse) sont fournis avec le code source ; leur reproduction est décrite dans le fichier README du dépôt.</p>
 """
 
